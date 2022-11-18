@@ -24,6 +24,28 @@ go build -o ton-proxy proxy/main.go
  ```
 Done!
 
+## How to use
+
+#### 1. Start it
+Double click on it (on windows), or run it using terminal on mac/linux.
+
+You should see:
+
+<img width="572" alt="Screen Shot 2022-11-18 at 17 01 01" src="https://user-images.githubusercontent.com/9332353/202722168-3a41b771-7f61-4ddd-8310-21ae1b2e5b27.png">
+
+HTTP proxy will start on 127.0.0.1:8080 address.
+
+#### 2. Connect your browser to it
+Open your browser network settings and configure http proxy.
+<img width="735" alt="image" src="https://user-images.githubusercontent.com/9332353/202722921-a2f7a92b-c5d8-496d-aaf2-446f01fad0ae.png">
+
+#### 3. Try to connect to some .ton sites
+Your proxy is configured now, you can access TON sites!
+
+Lets try to connect to some ton site, for example http://foundation.ton/
+
+**By the way, this proxy works fine also for Web2 sites, you can seamlessly use it to access both Web2 and Web3.**
+
 <!-- Badges -->
 [ton-svg]: https://img.shields.io/badge/Based%20on-TON-blue
 [ton]: https://ton.org
