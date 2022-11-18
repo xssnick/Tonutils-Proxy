@@ -2,7 +2,7 @@ module TON-RabbitHole
 
 go 1.19
 
-require github.com/xssnick/tonutils-go v1.4.1-0.20221118102535-41fc0d9d894c
+require github.com/xssnick/tonutils-go v1.4.1-0.20221118143756-dc21e1380040
 
 require (
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20220328075252-7dd334e3daae // indirect
