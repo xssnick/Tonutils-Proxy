@@ -44,6 +44,8 @@ Your proxy is configured now, you can access TON sites!
 
 Lets try to connect to some ton site, for example http://foundation.ton/
 
+<img width="654" alt="Screen Shot 2022-11-18 at 17 41 19" src="https://user-images.githubusercontent.com/9332353/202730383-85bda07b-7bea-4d9c-9aa6-633f76d1cee3.png">
+
 **By the way, this proxy works fine also for Web2 sites, you can seamlessly use it to access both Web2 and Web3.**
 
 <!-- Badges -->
