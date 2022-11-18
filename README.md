@@ -9,7 +9,7 @@ At this moment client multi-threaded proxy is implemented, reverse-proxy for web
 
 [Join our Telegram group](https://t.me/tonrh) to stay updated! More cool products on this basis are planned.
 
-##### Support us ❤️
+##### Support project ❤️
 If you love this product and want to support its development you can donate any amount of coins to this ton address ☺️
 `EQBx6tZZWa2Tbv6BvgcvegoOQxkRrVaBVwBOoW85nbP37_Go`
 
