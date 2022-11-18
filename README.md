@@ -14,7 +14,7 @@ If you love this product and want to support its development you can donate any 
 `EQBx6tZZWa2Tbv6BvgcvegoOQxkRrVaBVwBOoW85nbP37_Go`
 
 ### Download precompiled version
-You can find executable for most popular platforms in [Releases](/releases).
+You can find executable for most popular platforms in [Releases](https://github.com/xssnick/TON-RabbitHole/releases).
 
 If executable is missing for your platform, you can [join our group](https://t.me/tonrh) and ask for it, we may add it to releases list.
 ### How to build from sources
