@@ -1,4 +1,4 @@
-# TON Rabbit Hole
+# TonUtils Proxy
 [![Based on TON][ton-svg]][ton]
 
 **Your gateway to the new internet**
@@ -26,11 +26,10 @@ Done!
 
 ## How to use
 
-#### 1. Start it
-Double click on it (on windows), or run it using terminal on mac/linux.
+#### 1. Start it (CLI Version)
+Double click on it on windows, or run it using terminal on linux.
 
 You should see:
-
 <img width="572" alt="Screen Shot 2022-11-18 at 17 01 01" src="https://user-images.githubusercontent.com/9332353/202722168-3a41b771-7f61-4ddd-8310-21ae1b2e5b27.png">
 
 HTTP proxy will start on 127.0.0.1:8080 address.

@@ -1,8 +1,11 @@
-module TON-RabbitHole
+module tonutils-proxy
 
 go 1.19
 
-require github.com/xssnick/tonutils-go v1.4.1-0.20221118143756-dc21e1380040
+require (
+	github.com/webview/webview v0.0.0-20220816141928-2ee04ccd0530
+	github.com/xssnick/tonutils-go v1.4.1-0.20221121132603-3ffc5331bb47
+)
 
 require (
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20220328075252-7dd334e3daae // indirect
