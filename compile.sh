@@ -19,6 +19,6 @@ GOOS=darwin GOARCH=amd64 go build -o build/cli/tonutils-proxy-cli-darwin-amd64 c
 echo "Building LINUX CLI AMD"
 GOOS=linux GOARCH=amd64 go build -o build/cli/tonutils-proxy-cli-linux-amd64 cmd/proxy-cli/main.go
 echo "Building WINDOWS CLI AMD"
-GOOS=windows GOARCH=amd64 go build -o build/cli/tonutils-proxy-cli-windows-amd64 cmd/proxy-cli/main.go
+GOOS=windows GOARCH=amd64 go build -o build/cli/tonutils-proxy-cli-windows-amd64.exe cmd/proxy-cli/main.go
 
 open build/TonutilsProxyARM.app
