@@ -3,6 +3,8 @@
 
 **Your gateway to the new internet**
 
+<img width="294" alt="Screen Shot 2022-11-21 at 18 15 16" src="https://user-images.githubusercontent.com/9332353/203090531-6b37d922-236b-4ff2-857b-dd4965cfa153.png">
+
 This is a user-friendly TON Proxy implementation. It works on any platform with UDP support. It can be used with any internet connection, and any type of ip.  
 
 At this moment client multi-threaded proxy is implemented, reverse-proxy for web3 sites hosting coming soon!
@@ -17,20 +19,21 @@ If you love this product and want to support its development you can donate any 
 You can find executable for most popular platforms in [Releases](https://github.com/xssnick/TON-RabbitHole/releases).
 
 If executable is missing for your platform, you can [join our group](https://t.me/tonrh) and ask for it, we may add it to releases list.
-### How to build from sources
-No external dependencies, just [tonutils](https://github.com/xssnick/tonutils-go) and pure Go 🤘
- ```
-go build -o ton-proxy proxy/main.go
- ```
-Done!
 
 ## How to use
 
-#### 1. Start it (CLI Version)
+#### 1. Start it
 Double click on it on windows, or run it using terminal on linux.
 
 You should see:
+
+<img width="303" alt="Screen Shot 2022-11-21 at 18 13 11" src="https://user-images.githubusercontent.com/9332353/203090096-1c03907b-7d29-4be2-83df-d689d2151f08.png">
+
+Or
+
 <img width="572" alt="Screen Shot 2022-11-18 at 17 01 01" src="https://user-images.githubusercontent.com/9332353/202722168-3a41b771-7f61-4ddd-8310-21ae1b2e5b27.png">
+
+Click "Start Gateway" in GUI version. CLI version starts automatically.
 
 HTTP proxy will start on 127.0.0.1:8080 address.
 
@@ -50,3 +53,12 @@ Lets try to connect to some ton site, for example http://foundation.ton/
 <!-- Badges -->
 [ton-svg]: https://img.shields.io/badge/Based%20on-TON-blue
 [ton]: https://ton.org
+
+### How to build from sources
+CLI version has no external dependencies, just [tonutils](https://github.com/xssnick/tonutils-go) and pure Go 🤘
+ ```
+go build -o ton-proxy cmd/proxy-cli/main.go
+ ```
+Done!
+
+To build GUI version https://github.com/webview/webview requirements should be met. You can use compile.sh
