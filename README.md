@@ -42,6 +42,9 @@ Click "Start Gateway" in GUI version. CLI version starts automatically.
 
 HTTP proxy will start on 127.0.0.1:8080 address.
 
+If you are using GUI version, it should configure your system automatically. 
+If you are using CLI, or you want to do a manual connection, follow steps below.
+
 #### 2. Connect your browser to it
 Open your browser network settings and configure http proxy.
 <img width="735" alt="image" src="https://user-images.githubusercontent.com/9332353/202722921-a2f7a92b-c5d8-496d-aaf2-446f01fad0ae.png">
