@@ -80,7 +80,7 @@ func (p *proxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 
 	var c = http.DefaultClient
-	if strings.HasSuffix(req.Host, ".ton") {
+	if strings.HasSuffix(req.Host, ".ton") || strings.HasSuffix(req.Host, ".t.me") {
 		log.Println("OVER RLDP", " ", req.Method, " ", req.URL)
 		// proxy requests to ton using special client
 		c = client
