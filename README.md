@@ -16,10 +16,10 @@ If you love this product and want to support its development you can donate any 
 `EQBx6tZZWa2Tbv6BvgcvegoOQxkRrVaBVwBOoW85nbP37_Go`
 
 ### Download precompiled version
-* [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.4/GUI.Mac.M1.Tonutils.Proxy.dmg)
-* [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.4/GUI.Mac.Intel.Tonutils.Proxy.dmg)
-* [Download Windows (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.4/cli-tonutils-proxy-windows-amd64.exe)
-* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.4/cli-tonutils-proxy-linux-amd64)
+* [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.3/GUI.Mac.M1.Tonutils.Proxy.dmg)
+* [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.3/GUI.Mac.Intel.Tonutils.Proxy.dmg)
+* [Download Windows (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.3/cli-tonutils-proxy-windows-amd64.exe)
+* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.3/cli-tonutils-proxy-linux-amd64)
 
 You can also find executable for most popular platforms in [Releases](https://github.com/xssnick/Tonutils-Proxy/releases).
 
