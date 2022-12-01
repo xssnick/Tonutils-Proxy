@@ -9,11 +9,15 @@ CGO_CFLAGS=-mmacosx-version-min=10.9 CGO_LDFLAGS=-mmacosx-version-min=10.9 CGO_E
 echo "Building WINDOWS GUI AMD"
 p=$(pwd)
 # To start script need to declare your own LIBS env variable
-LIBS="C:\Users\alexb\libs"
-GO111MODULE="on" CGO_CXXFLAGS="-I$LIBS\webview2\build\native\include" CGO_LDFLAGS="-L$LIBS\webview2\build\native\x64" CGO_ENABLED=1 GOOS="windows" GOARCH="amd64"  go build -ldflags="-H windowsgui" -o build/tonutils-proxy-gui.exe cmd/proxy-gui/main.go
-rh.exe -open build/tonutils-proxy-gui.exe -save build/tonutils-proxy-gui.exe -action addskip -res build/ton_icon.ico -mask ICONGROUP,MAINICON,
-iscc /Q[p] "$p\build\win-install.iss"
-rm "$p\build\tonutils-proxy-gui.exe"
+#LIBS="<YOUR PATH>"
+GO111MODULE="on" CGO_CXXFLAGS="-I$LIBS\webview2\build\native\include" CGO_LDFLAGS="-L$LIBS\webview2\build\native\x64" CGO_ENABLED=1 GOOS="windows" GOARCH="amd64"  go build -ldflags="-H windowsgui" -o build/gui/windows/tonutils-proxy-gui.exe cmd/proxy-gui/main.go
+cp "$LIBS\webview2\build\native\x64\WebView2Loader.dll" "$p\build\gui\windows\WebView2Loader.dll"
+rh.exe -open build/gui/windows/tonutils-proxy-gui.exe -save build/gui/windows/tonutils-proxy-gui.exe -action addskip -res resources/windows/ton_icon.ico -mask ICONGROUP,MAINICON,
+cp "$p\resources\windows\win-install.iss" "$p\build\gui\windows\win-install.iss"
+cp "$p\resources\windows\ton_icon.ico" "$p\build\gui\windows\ton_icon.ico"
+iscc /Q[p] "$p\build\gui\windows\win-install.iss"
+rm "$p\build\gui\windows\win-install.iss"
+rm "$p\build\gui\windows\ton_icon.ico"
 
 echo "Building LINUX GUI AMD"
 CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o build/tonutils-proxy-gui cmd/proxy-gui/main.go

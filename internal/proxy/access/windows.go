@@ -56,8 +56,6 @@ int disPoxy() {
 
 		RegCloseKey(hKey);
 }
-
-
 */
 import "C"
 
@@ -68,15 +66,13 @@ func enableProxy(addr, port string) error {
 
 	res := C.setPoxy(cHost)
 	resGo := int(res)
-	if resGo != 0 {
-		switch resGo {
-		case 1:
-			return errors.New("can't set proxy, err: missing key")
-		case 2:
-			return errors.New("can't set proxy, err: failed enable proxy")
-		case 3:
-			return errors.New("can't set proxy, err: failed set host and port")
-		}
+	switch resGo {
+	case 1:
+		return errors.New("can't set proxy, err: missing key")
+	case 2:
+		return errors.New("can't set proxy, err: failed enable proxy")
+	case 3:
+		return errors.New("can't set proxy, err: failed set host and port")
 	}
 	return nil
 }
@@ -84,13 +80,11 @@ func enableProxy(addr, port string) error {
 func disableProxy() error {
 	res := C.disPoxy()
 	resGo := int(res)
-	if resGo != 0 {
-		switch resGo {
-		case 1:
-			return errors.New("can't set proxy, err: missing key")
-		case 2:
-			return errors.New("can't set proxy, err: failed enable proxy")
-		}
+	switch resGo {
+	case 1:
+		return errors.New("can't set proxy, err: missing key")
+	case 2:
+		return errors.New("can't set proxy, err: failed enable proxy")
 	}
 	return nil
 }
