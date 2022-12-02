@@ -9,7 +9,7 @@ CGO_CFLAGS=-mmacosx-version-min=10.9 CGO_LDFLAGS=-mmacosx-version-min=10.9 CGO_E
 echo "Building WINDOWS GUI AMD"
 p=$(pwd)
 # To start script need to declare your own LIBS env variable
-#LIBS="<YOUR PATH>"
+LIBS="C:\Users\alexb\libs"
 GO111MODULE="on" CGO_CXXFLAGS="-I$LIBS\webview2\build\native\include" CGO_LDFLAGS="-L$LIBS\webview2\build\native\x64" CGO_ENABLED=1 GOOS="windows" GOARCH="amd64"  go build -ldflags="-H windowsgui" -o build/gui/windows/tonutils-proxy-gui.exe cmd/proxy-gui/main.go
 cp "$LIBS\webview2\build\native\x64\WebView2Loader.dll" "$p\build\gui\windows\WebView2Loader.dll"
 rh.exe -open build/gui/windows/tonutils-proxy-gui.exe -save build/gui/windows/tonutils-proxy-gui.exe -action addskip -res resources/windows/ton_icon.ico -mask ICONGROUP,MAINICON,
