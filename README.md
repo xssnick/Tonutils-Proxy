@@ -27,18 +27,21 @@ If executable is missing for your platform, you can [join our group](https://t.m
 
 ## How to use
 
-#### 1. Start it
-Double click on it on windows, or run it using terminal on linux.
-
+### GUI
+#### 1. Open it
 You should see:
 
 <img width="303" alt="Screen Shot 2022-11-21 at 18 13 11" src="https://user-images.githubusercontent.com/9332353/203090096-1c03907b-7d29-4be2-83df-d689d2151f08.png">
 
-Or
+### 2. Start it
+Click "Start Gateway", it will configure your system automatically and open foundation.ton.
+
+
+### CLI
+#### 1. Open it
+Double click on it on windows, or run it using terminal on linux/mac.
 
 <img width="572" alt="Screen Shot 2022-11-18 at 17 01 01" src="https://user-images.githubusercontent.com/9332353/202722168-3a41b771-7f61-4ddd-8310-21ae1b2e5b27.png">
-
-Click "Start Gateway" in GUI version. CLI version starts automatically.
 
 HTTP proxy will start on 127.0.0.1:8080 address.
 
