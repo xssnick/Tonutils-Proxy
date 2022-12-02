@@ -28,17 +28,17 @@ If executable is missing for your platform, you can [join our group](https://t.m
 ## How to use
 
 ### GUI
-#### 1. Open it
+##### 1. Open it
 You should see:
 
 <img width="303" alt="Screen Shot 2022-11-21 at 18 13 11" src="https://user-images.githubusercontent.com/9332353/203090096-1c03907b-7d29-4be2-83df-d689d2151f08.png">
 
-### 2. Start it
+##### 2. Start it
 Click "Start Gateway", it will configure your system automatically and open foundation.ton.
 
 
 ### CLI
-#### 1. Open it
+##### 1. Open it
 Double click on it on windows, or run it using terminal on linux/mac.
 
 <img width="572" alt="Screen Shot 2022-11-18 at 17 01 01" src="https://user-images.githubusercontent.com/9332353/202722168-3a41b771-7f61-4ddd-8310-21ae1b2e5b27.png">
@@ -48,11 +48,11 @@ HTTP proxy will start on 127.0.0.1:8080 address.
 If you are using GUI version, it should configure your system automatically. 
 If you are using CLI, or you want to do a manual connection, follow steps below.
 
-#### 2. Connect your browser to it
+##### 2. Connect your browser to it
 Open your browser network settings and configure http proxy.
 <img width="735" alt="image" src="https://user-images.githubusercontent.com/9332353/202722921-a2f7a92b-c5d8-496d-aaf2-446f01fad0ae.png">
 
-#### 3. Try to connect to some .ton sites
+##### 3. Try to connect to some .ton sites
 Your proxy is configured now, you can access TON sites!
 
 Lets try to connect to some ton site, for example http://foundation.ton/
