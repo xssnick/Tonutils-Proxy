@@ -91,6 +91,8 @@ end;
 
 [Run]
 Filename: "{app}\MicrosoftEdgeWebview2Setup.exe"; Check: not IsWebView2Detected; StatusMsg: "installation Microsoft WebView2"
+Filename: "{app}\tonutils-proxy-gui.EXE"; Description: "Launch application?"; Flags: postinstall
+
 
 
 
