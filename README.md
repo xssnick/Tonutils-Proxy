@@ -16,10 +16,10 @@ If you love this product and want to support its development you can donate any 
 `EQBx6tZZWa2Tbv6BvgcvegoOQxkRrVaBVwBOoW85nbP37_Go`
 
 ### Download precompiled version
-* [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.3/GUI.Mac.M1.Tonutils.Proxy.dmg)
-* [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.3/GUI.Mac.Intel.Tonutils.Proxy.dmg)
-* [Download Windows (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.3/cli-tonutils-proxy-windows-amd64.exe)
-* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.3/cli-tonutils-proxy-linux-amd64)
+* [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.4/GUI.Mac.M1.Tonutils.Proxy.dmg)
+* [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.4/GUI.Mac.Intel.Tonutils.Proxy.dmg)
+* [Download Windows (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.4/cli-tonutils-proxy-windows-amd64.exe)
+* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.1.4/cli-tonutils-proxy-linux-amd64)
 
 You can also find executable for most popular platforms in [Releases](https://github.com/xssnick/Tonutils-Proxy/releases).
 
@@ -27,29 +27,32 @@ If executable is missing for your platform, you can [join our group](https://t.m
 
 ## How to use
 
-#### 1. Start it
-Double click on it on windows, or run it using terminal on linux.
-
+### GUI
+##### 1. Open it
 You should see:
 
 <img width="303" alt="Screen Shot 2022-11-21 at 18 13 11" src="https://user-images.githubusercontent.com/9332353/203090096-1c03907b-7d29-4be2-83df-d689d2151f08.png">
 
-Or
+##### 2. Start it
+Click "Start Gateway", it will configure your system automatically and open foundation.ton.
+
+
+### CLI
+##### 1. Open it
+Double click on it on windows, or run it using terminal on linux/mac.
 
 <img width="572" alt="Screen Shot 2022-11-18 at 17 01 01" src="https://user-images.githubusercontent.com/9332353/202722168-3a41b771-7f61-4ddd-8310-21ae1b2e5b27.png">
-
-Click "Start Gateway" in GUI version. CLI version starts automatically.
 
 HTTP proxy will start on 127.0.0.1:8080 address.
 
 If you are using GUI version, it should configure your system automatically. 
 If you are using CLI, or you want to do a manual connection, follow steps below.
 
-#### 2. Connect your browser to it
+##### 2. Connect your browser to it
 Open your browser network settings and configure http proxy.
 <img width="735" alt="image" src="https://user-images.githubusercontent.com/9332353/202722921-a2f7a92b-c5d8-496d-aaf2-446f01fad0ae.png">
 
-#### 3. Try to connect to some .ton sites
+##### 3. Try to connect to some .ton sites
 Your proxy is configured now, you can access TON sites!
 
 Lets try to connect to some ton site, for example http://foundation.ton/
