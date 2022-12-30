@@ -15,9 +15,11 @@ cp "$LIBS\webview2\build\native\x64\WebView2Loader.dll" "$p\build\gui\windows\We
 rh.exe -open build/gui/windows/tonutils-proxy-gui.exe -save build/gui/windows/tonutils-proxy-gui.exe -action addskip -res resources/windows/ton_icon.ico -mask ICONGROUP,MAINICON,
 cp "$p\resources\windows\win-install.iss" "$p\build\gui\windows\win-install.iss"
 cp "$p\resources\windows\ton_icon.ico" "$p\build\gui\windows\ton_icon.ico"
+curl -o "$p\build\gui\windows\MicrosoftEdgeWebview2Setup.exe" https://go.microsoft.com/fwlink/p/?LinkId=2124703
 iscc /Q[p] "$p\build\gui\windows\win-install.iss"
 rm "$p\build\gui\windows\win-install.iss"
 rm "$p\build\gui\windows\ton_icon.ico"
+rm "$p\build\gui\windows\MicrosoftEdgeWebview2Setup.exe"
 
 echo "Building LINUX GUI AMD"
 CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o build/tonutils-proxy-gui cmd/proxy-gui/main.go
