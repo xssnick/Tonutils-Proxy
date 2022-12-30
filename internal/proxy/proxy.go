@@ -2,8 +2,6 @@ package proxy
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/binary"
 	"fmt"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/adnl"
@@ -80,7 +78,7 @@ func (p *proxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 
 	var c = http.DefaultClient
-	if strings.HasSuffix(req.Host, ".ton") || strings.HasSuffix(req.Host, ".t.me") {
+	if strings.HasSuffix(req.Host, ".ton") || strings.HasSuffix(req.Host, ".adnl") || strings.HasSuffix(req.Host, ".t.me") {
 		log.Println("OVER RLDP", " ", req.Method, " ", req.URL)
 		// proxy requests to ton using special client
 		c = client
@@ -133,30 +131,13 @@ func StartProxy(addr string, debug bool, res chan<- State) error {
 		adnl.Logger = func(v ...any) {}
 	}
 
-	var nodes []dht.NodeInfo
-	for _, node := range cfg.DHT.StaticNodes.Nodes {
-		ip := make(net.IP, 4)
-		ii := int32(node.AddrList.Addrs[0].IP)
-		binary.BigEndian.PutUint32(ip, uint32(ii))
-
-		pp, err := base64.StdEncoding.DecodeString(node.ID.Key)
-		if err != nil {
-			continue
-		}
-
-		nodes = append(nodes, dht.NodeInfo{
-			Address: ip.String() + ":" + fmt.Sprint(node.AddrList.Addrs[0].Port),
-			Key:     pp,
-		})
-	}
-
 	report(State{
 		Type:  "loading",
 		State: "Initializing DHT...",
 	})
 
 	log.Println("Initialising DHT client...")
-	dhtClient, err := dht.NewClient(10*time.Second, nodes)
+	dhtClient, err := dht.NewClientFromConfig(10*time.Second, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to init DHT client: %w", err)
 	}
