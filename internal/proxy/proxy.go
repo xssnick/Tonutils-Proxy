@@ -136,8 +136,11 @@ func StartProxy(addr string, debug bool, res chan<- State) error {
 		State: "Initializing DHT...",
 	})
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	log.Println("Initialising DHT client...")
-	dhtClient, err := dht.NewClientFromConfig(10*time.Second, cfg)
+	dhtClient, err := dht.NewClientFromConfig(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to init DHT client: %w", err)
 	}
