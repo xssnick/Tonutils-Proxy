@@ -1,6 +1,6 @@
 [Setup]
 AppName=Ton Proxy
-AppVersion=0.1.5
+AppVersion=0.2.0
 WizardStyle=modern
 DefaultDirName={autopf}\Ton Proxy
 DefaultGroupName=Ton Proxy
