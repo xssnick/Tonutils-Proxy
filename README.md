@@ -19,7 +19,7 @@ If you love this product and want to support its development you can donate any 
 * [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.2.0/GUI.Mac.M1.Tonutils.Proxy.dmg)
 * [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.2.0/GUI.Mac.Intel.Tonutils.Proxy.dmg)
 * [Download Windows (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.2.0/GUI-Windows-x64-Tonutils-Proxy.exe)
-* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.2.0/cli-tonutils-proxy-linux-amd64)
+* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v0.2.0/tonutils-proxy-cli-linux-amd64)
 
 You can also find executable for most popular platforms in [Releases](https://github.com/xssnick/Tonutils-Proxy/releases).
 
