@@ -61,6 +61,11 @@ type proxy struct {
 var client *http.Client
 
 func (p *proxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
+	if req.URL.Scheme == "" {
+		// if no scheme - we check forwarded proto
+		req.URL.Scheme = req.Header.Get("X-Forwarded-Proto")
+	}
+
 	if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
 		msg := "unsupported protocal scheme " + req.URL.Scheme
 		http.Error(wr, msg, http.StatusBadRequest)

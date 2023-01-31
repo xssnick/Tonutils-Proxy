@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/webview/webview v0.0.0-20220816141928-2ee04ccd0530
-	github.com/xssnick/tonutils-go v1.5.0
+	github.com/xssnick/tonutils-go v1.5.1-0.20230131083811-f2432838f9cc
 )
 
 require (
