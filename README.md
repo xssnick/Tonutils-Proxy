@@ -25,9 +25,9 @@ You can also find executable for most popular platforms in [Releases](https://gi
 
 If executable is missing for your platform, you can [join our group](https://t.me/tonrh) and ask for it, we may add it to releases list.
 
-## How to use
+# How to use
 
-### GUI
+## GUI
 ##### 1. Open it
 You should see:
 
@@ -36,8 +36,7 @@ You should see:
 ##### 2. Start it
 Click "Start Gateway", it will configure your system automatically and open foundation.ton.
 
-
-### CLI
+## CLI
 ##### 1. Open it
 Double click on it on windows, or run it using terminal on linux/mac.
 
