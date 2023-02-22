@@ -166,6 +166,8 @@ import "C"
 var authP C.AuthorizationRef
 var once sync.Once
 
+var setAddr, setPort string
+
 func auth() {
 	once.Do(func() {
 		authP = C.auth()
@@ -174,6 +176,9 @@ func auth() {
 
 func enableProxy(addr, port string) error {
 	auth()
+
+	setAddr = addr
+	setPort = port
 
 	cAddr := C.CString(addr)
 	defer C.free(unsafe.Pointer(cAddr))
@@ -188,16 +193,18 @@ func enableProxy(addr, port string) error {
 }
 
 func disableProxy() error {
-	auth()
+	if authP == nil { // proxy was not set
+		return nil
+	}
 
-	cAddr := C.CString("")
+	cAddr := C.CString(setAddr)
 	defer C.free(unsafe.Pointer(cAddr))
 
-	cPort := C.CString("")
+	cPort := C.CString(setPort)
 	defer C.free(unsafe.Pointer(cPort))
 
 	enable := C.bool(false)
-	C.setProxy(cPort, cAddr, enable, authP)
+	C.setProxy(cAddr, cPort, enable, authP)
 
 	return nil
 }

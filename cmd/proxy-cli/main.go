@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
+	"github.com/xssnick/tonutils-proxy/proxy"
 	"log"
-	"tonutils-proxy/internal/proxy"
 )
 
 func main() {
