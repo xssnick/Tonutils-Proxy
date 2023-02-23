@@ -64,6 +64,7 @@ var Connector = func(ctx context.Context, addr string, peerKey ed25519.PublicKey
 
 var newRLDP = func(a ADNL) RLDP {
 	return rldp.NewClient(a)
+	// return rldp.NewClientV2(a) // for rldp2, but it is too early now
 }
 
 type siteInfo struct {

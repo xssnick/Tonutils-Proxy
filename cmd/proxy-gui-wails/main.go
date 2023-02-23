@@ -2,11 +2,11 @@ package main
 
 import (
 	"embed"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
-
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"runtime"
 )
 
 //go:embed all:frontend/dist
@@ -16,18 +16,19 @@ func main() {
 	// Create an instance of the app structure
 	app := NewApp()
 
+	height := 270
+	if runtime.GOOS == "windows" {
+		height = 310 // windows cut part of the height, so we extend it
+	}
+
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:         "Tonutils Proxy",
 		Width:         300,
-		Height:        270,
+		Height:        height,
 		DisableResize: true,
 		Mac: &mac.Options{
-			TitleBar:             nil,
-			Appearance:           mac.NSAppearanceNameDarkAqua,
-			WebviewIsTransparent: false,
-			WindowIsTranslucent:  false,
-			About:                nil,
+			Appearance: mac.NSAppearanceNameDarkAqua,
 		},
 		AssetServer: &assetserver.Options{
 			Assets: assets,

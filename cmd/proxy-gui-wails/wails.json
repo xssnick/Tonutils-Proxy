@@ -9,5 +9,12 @@
   "author": {
     "name": "Oleg Baranov",
     "email": "xssnick8@gmail.com"
+  },
+  "info": {
+    "companyName": "Tonutils",
+    "productName": "Tonutils Proxy",
+    "productVersion": "v1.0.0",
+    "copyright": "",
+    "comments": "Your gateway to The Open Network"
   }
 }
