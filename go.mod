@@ -2,7 +2,7 @@ module github.com/xssnick/tonutils-proxy
 
 go 1.19
 
-require github.com/xssnick/tonutils-go v1.5.3-0.20230222171620-6f8d8d91faf3
+require github.com/xssnick/tonutils-go v1.5.3-0.20230223093015-cb8d6107bc07
 
 require (
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20220328075252-7dd334e3daae // indirect

@@ -96,7 +96,13 @@ func (p *proxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	resp, err := c.Do(req)
 	if err != nil {
-		http.Error(wr, "RLDP Proxy Error:\n"+err.Error(), http.StatusInternalServerError)
+		text := err.Error()
+		if strings.Contains(text, "context deadline exceeded") {
+			http.Error(wr, "TON Site "+req.URL.Host+" is not responding.", http.StatusBadGateway)
+		} else {
+			http.Error(wr, "RLDP Proxy Error:\n"+text, http.StatusBadGateway)
+		}
+		log.Println("cannot open", req.URL.String(), "| err:", text)
 		return
 	}
 	defer resp.Body.Close()
