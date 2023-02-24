@@ -36,6 +36,8 @@ You should see:
 ##### 2. Start it
 Click "Start Gateway", it will configure your system automatically and open foundation.ton.
 
+If for some reason your system was not autoconfigured or you don't want to reconfigure it, you can enter HTTP proxy address manually in your browser. Follow CLI instructions starting from 2. HTTP proxy uses 127.0.0.1:8080 address.
+
 ## CLI
 ##### 1. Open it
 Double click on it on windows, or run it using terminal on linux/mac.
