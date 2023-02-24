@@ -159,7 +159,8 @@ func StartProxy(addr string, debug bool, res chan<- State) error {
 		return fmt.Errorf("failed to generate ed25519 dht adnl key: %w", err)
 	}
 
-	gateway, err := adnl.StartClientGateway(dhtAdnlKey)
+	gateway := adnl.NewGateway(dhtAdnlKey)
+	err = gateway.StartClient()
 	if err != nil {
 		return fmt.Errorf("failed to start adnl gateway: %w", err)
 	}

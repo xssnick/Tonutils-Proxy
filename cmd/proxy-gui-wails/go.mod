@@ -29,7 +29,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
-	github.com/xssnick/tonutils-go v1.5.3-0.20230223093015-cb8d6107bc07 // indirect
+	github.com/xssnick/tonutils-go v1.5.3-0.20230224103525-a740f2b2aa76 // indirect
 	golang.org/x/crypto v0.0.0-20220321153916-2c7772ba3064 // indirect
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
