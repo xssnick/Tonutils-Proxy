@@ -28,15 +28,18 @@ If executable is missing for your platform, you can [join our group](https://t.m
 # How to use
 
 ## GUI
-##### 1. Open it
+#### 1. Open it
 You should see:
 
 <img width="303" alt="Screen Shot 2022-11-21 at 18 13 11" src="https://user-images.githubusercontent.com/9332353/203090096-1c03907b-7d29-4be2-83df-d689d2151f08.png">
 
-##### 2. Start it
+#### 2. Start it
 Click "Start Gateway", it will configure your system automatically and open foundation.ton.
 
-If for some reason your system was not autoconfigured or you don't want to reconfigure it, you can enter HTTP proxy address manually in your browser. Follow CLI instructions starting from 2. HTTP proxy uses 127.0.0.1:8080 address.
+##### If TON sites not opens
+If for some reason your system was not autoconfigured or you don't want to reconfigure it, you can enter HTTP proxy address manually in your browser. Follow CLI instructions starting from [section 2](#2-connect-your-browser-to-it). 
+
+HTTP proxy uses `127.0.0.1:8080` address.
 
 ## CLI
 ##### 1. Open it
@@ -44,7 +47,7 @@ Double click on it on windows, or run it using terminal on linux/mac.
 
 <img width="572" alt="Screen Shot 2022-11-18 at 17 01 01" src="https://user-images.githubusercontent.com/9332353/202722168-3a41b771-7f61-4ddd-8310-21ae1b2e5b27.png">
 
-HTTP proxy will start on 127.0.0.1:8080 address.
+HTTP proxy will start on `127.0.0.1:8080` address.
 
 If you are using GUI version, it should configure your system automatically. 
 If you are using CLI, or you want to do a manual connection, follow steps below.
