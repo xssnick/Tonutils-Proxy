@@ -1,5 +1,5 @@
-build/
+build/cli
+build/gui
 .DS_Store
 .idea
-internal/proxy/window
-.gitignore
+proxy/window

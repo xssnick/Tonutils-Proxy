@@ -2,14 +2,16 @@ package proxy
 
 import (
 	"context"
+	"crypto/ed25519"
 	"fmt"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/adnl"
 	"github.com/xssnick/tonutils-go/adnl/dht"
-	rldphttp "github.com/xssnick/tonutils-go/adnl/rldp/http"
+	"github.com/xssnick/tonutils-go/adnl/storage"
 	"github.com/xssnick/tonutils-go/liteclient"
 	"github.com/xssnick/tonutils-go/ton"
 	"github.com/xssnick/tonutils-go/ton/dns"
+	"github.com/xssnick/tonutils-proxy/proxy/transport"
 	"io"
 	"log"
 	"net"
@@ -83,7 +85,8 @@ func (p *proxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 
 	var c = http.DefaultClient
-	if strings.HasSuffix(req.Host, ".ton") || strings.HasSuffix(req.Host, ".adnl") || strings.HasSuffix(req.Host, ".t.me") {
+	if strings.HasSuffix(req.Host, ".ton") || strings.HasSuffix(req.Host, ".adnl") ||
+		strings.HasSuffix(req.Host, ".t.me") || strings.HasSuffix(req.Host, ".bag") {
 		log.Println("OVER RLDP", " ", req.Method, " ", req.URL)
 		// proxy requests to ton using special client
 		c = client
@@ -93,7 +96,13 @@ func (p *proxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	resp, err := c.Do(req)
 	if err != nil {
-		http.Error(wr, "RLDP Proxy Error:\n"+err.Error(), http.StatusInternalServerError)
+		text := err.Error()
+		if strings.Contains(text, "context deadline exceeded") {
+			http.Error(wr, "TON Site "+req.URL.Host+" is not responding.", http.StatusBadGateway)
+		} else {
+			http.Error(wr, "RLDP Proxy Error:\n"+text, http.StatusBadGateway)
+		}
+		log.Println("cannot open", req.URL.String(), "| err:", text)
 		return
 	}
 	defer resp.Body.Close()
@@ -145,7 +154,18 @@ func StartProxy(addr string, debug bool, res chan<- State) error {
 	defer cancel()
 
 	log.Println("Initialising DHT client...")
-	dhtClient, err := dht.NewClientFromConfig(ctx, cfg)
+	_, dhtAdnlKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		return fmt.Errorf("failed to generate ed25519 dht adnl key: %w", err)
+	}
+
+	gateway := adnl.NewGateway(dhtAdnlKey)
+	err = gateway.StartClient()
+	if err != nil {
+		return fmt.Errorf("failed to start adnl gateway: %w", err)
+	}
+
+	dhtClient, err := dht.NewClientFromConfig(ctx, gateway, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to init DHT client: %w", err)
 	}
@@ -167,8 +187,9 @@ func StartProxy(addr string, debug bool, res chan<- State) error {
 	})
 
 	log.Println("Initialising RLDP transport layer...")
+	store := storage.NewClient(dhtClient)
 	client = &http.Client{
-		Transport: rldphttp.NewTransport(dhtClient, dnsClient),
+		Transport: transport.NewTransport(dhtClient, dnsClient, store),
 	}
 
 	report(State{

@@ -1,11 +1,8 @@
-module tonutils-proxy
+module github.com/xssnick/tonutils-proxy
 
 go 1.19
 
-require (
-	github.com/webview/webview v0.0.0-20220816141928-2ee04ccd0530
-	github.com/xssnick/tonutils-go v1.5.1
-)
+require github.com/xssnick/tonutils-go v1.5.3-0.20230224103525-a740f2b2aa76
 
 require (
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20220328075252-7dd334e3daae // indirect
