@@ -399,8 +399,9 @@ func (t *Transport) doTorrent(dow storage.TorrentDownloader, request *http.Reque
 	if preloadPartsNum > fileInfo.ToPiece-fileInfo.FromPiece {
 		preloadPartsNum = fileInfo.ToPiece - fileInfo.FromPiece
 	}
-	for i := fileInfo.FromPiece; i <= preloadPartsNum; i++ {
-		ch <- i
+
+	for i := uint32(0); i <= preloadPartsNum; i++ {
+		ch <- fileInfo.FromPiece + i
 	}
 
 	stream := newDataStreamer()
