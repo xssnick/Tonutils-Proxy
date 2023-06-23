@@ -11,17 +11,17 @@ import (
 	"github.com/xssnick/tonutils-go/adnl/address"
 	"github.com/xssnick/tonutils-go/adnl/rldp"
 	rldphttp "github.com/xssnick/tonutils-go/adnl/rldp/http"
-	"github.com/xssnick/tonutils-go/adnl/storage"
 	"github.com/xssnick/tonutils-go/tl"
 	"github.com/xssnick/tonutils-go/ton/dns"
+	"github.com/xssnick/tonutils-storage/storage"
 	"io"
 	"log"
 	"net/http"
 	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -47,6 +47,8 @@ type RLDP interface {
 }
 
 type ADNL interface {
+	RemoteAddr() string
+	GetID() []byte
 	Query(ctx context.Context, req, result tl.Serializable) error
 	SetDisconnectHandler(handler func(addr string, key ed25519.PublicKey))
 	SetCustomMessageHandler(handler func(msg *adnl.MessageCustom) error)
@@ -54,8 +56,9 @@ type ADNL interface {
 	Close()
 }
 
-type Storage interface {
-	CreateDownloader(ctx context.Context, bagId []byte, desiredMinPeersNum, threadsPerPeer int) (_ storage.TorrentDownloader, err error)
+type bagInfo struct {
+	torrent    *storage.Torrent
+	downloader storage.TorrentDownloader
 }
 
 var Connector = func(ctx context.Context, addr string, peerKey ed25519.PublicKey, ourKey ed25519.PrivateKey) (ADNL, error) {
@@ -70,7 +73,7 @@ var newRLDP = func(a ADNL) RLDP {
 type siteInfo struct {
 	Actor any
 
-	LastUsed time.Time
+	LastUsed int64
 	mx       sync.RWMutex
 }
 
@@ -82,9 +85,10 @@ type rldpInfo struct {
 }
 
 type Transport struct {
-	dht      DHT
-	resolver Resolver
-	storage  Storage
+	dht              DHT
+	resolver         Resolver
+	storageConnector storage.NetConnector
+	store            *VirtualStorage
 
 	activeSites map[string]*siteInfo
 
@@ -92,16 +96,53 @@ type Transport struct {
 	mx             sync.RWMutex
 }
 
-func NewTransport(dht DHT, resolver Resolver, store Storage) *Transport {
-	storage.Logger = log.Println
+func NewTransport(dht DHT, resolver Resolver, storeConn storage.NetConnector, store *VirtualStorage) *Transport {
 	t := &Transport{
-		dht:            dht,
-		resolver:       resolver,
-		storage:        store,
-		activeRequests: map[string]*payloadStream{},
-		activeSites:    map[string]*siteInfo{},
+		dht:              dht,
+		resolver:         resolver,
+		storageConnector: storeConn,
+		store:            store,
+		activeRequests:   map[string]*payloadStream{},
+		activeSites:      map[string]*siteInfo{},
 	}
+	go t.cleaner()
 	return t
+}
+
+func (t *Transport) cleaner() {
+	for {
+		select {
+		case <-time.After(3 * time.Second):
+		}
+
+		sites := make(map[string]*siteInfo, len(t.activeSites))
+		t.mx.RLock()
+		for s, info := range t.activeSites {
+			sites[s] = info
+		}
+		t.mx.RUnlock()
+
+		now := time.Now().Unix()
+		for s, info := range sites {
+			if info.mx.TryLock() {
+				// stop bags that was not used for > 5 min
+				if atomic.LoadInt64(&info.LastUsed)+300 < now {
+					switch act := info.Actor.(type) {
+					case *bagInfo:
+						t.mx.Lock()
+						if t.activeSites[s] == info {
+							delete(t.activeSites, s)
+						}
+						t.mx.Unlock()
+						act.downloader.Close()
+						act.torrent.Stop()
+						log.Println("STOPPED UNUSED BAG", hex.EncodeToString(act.torrent.BagID))
+					}
+				}
+				info.mx.Unlock()
+			}
+		}
+	}
 }
 
 func (t *Transport) connectRLDP(ctx context.Context, key ed25519.PublicKey, addr, host string) (RLDP, error) {
@@ -214,12 +255,13 @@ func (s *siteInfo) prepare(t *Transport, request *http.Request) (err error) {
 		if err != nil {
 			return err
 		}
-		s.LastUsed = time.Now()
 	}
 
 	switch act := s.Actor.(type) {
+	case *bagInfo:
+		atomic.StoreInt64(&s.LastUsed, time.Now().Unix())
 	case *rldpInfo:
-		if s.LastUsed.Add(30 * time.Second).Before(time.Now()) {
+		if atomic.LoadInt64(&s.LastUsed)+30 < time.Now().Unix() {
 			// if last used more than 30 seconds ago,
 			// we have a chance of stuck udp socket,
 			// so we just reinit connection
@@ -236,7 +278,7 @@ func (s *siteInfo) prepare(t *Transport, request *http.Request) (err error) {
 				s.Actor = nil
 				return s.prepare(t, request)
 			}
-			s.LastUsed = time.Now()
+			atomic.StoreInt64(&s.LastUsed, time.Now().Unix())
 		}
 	}
 	return nil
@@ -252,7 +294,7 @@ func (t *Transport) RoundTrip(request *http.Request) (_ *http.Response, err erro
 	t.mx.Unlock()
 
 	var rldpClient RLDP
-	var torrent storage.TorrentDownloader
+	var torrent *bagInfo
 
 	site.mx.Lock()
 	err = site.prepare(t, request)
@@ -264,7 +306,7 @@ func (t *Transport) RoundTrip(request *http.Request) (_ *http.Response, err erro
 	switch act := site.Actor.(type) {
 	case *rldpInfo:
 		rldpClient = act.ActiveClient
-	case storage.TorrentDownloader:
+	case *bagInfo:
 		torrent = act
 	}
 	site.mx.Unlock()
@@ -277,14 +319,14 @@ func (t *Transport) RoundTrip(request *http.Request) (_ *http.Response, err erro
 		return resp, nil
 	}
 
-	resp, err := t.doTorrent(torrent, request)
+	resp, err := t.doTorrent(torrent, request, site)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request file from storage: %w", err)
 	}
 	return resp, nil
 }
 
-func (t *Transport) doTorrent(dow storage.TorrentDownloader, request *http.Request) (*http.Response, error) {
+func (t *Transport) doTorrent(bag *bagInfo, request *http.Request, si *siteInfo) (*http.Response, error) {
 	fileName := request.URL.Path
 	if strings.HasPrefix(fileName, "/") {
 		fileName = fileName[1:]
@@ -307,8 +349,8 @@ func (t *Transport) doTorrent(dow storage.TorrentDownloader, request *http.Reque
 		}
 	}
 
-	fileInfo := dow.GetFileOffsets(fileName)
-	if fileInfo == nil {
+	fileInfo, err := bag.torrent.GetFileOffsets(fileName)
+	if err != nil {
 		return &http.Response{
 			Status:        "Not Found",
 			StatusCode:    404,
@@ -322,19 +364,6 @@ func (t *Transport) doTorrent(dow storage.TorrentDownloader, request *http.Reque
 		}, nil
 	}
 
-	httpResp := &http.Response{
-		Status:        "OK",
-		StatusCode:    200,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		Header:        map[string][]string{},
-		ContentLength: int64(fileInfo.Size),
-		Trailer:       map[string][]string{},
-		Request:       request,
-	}
-	httpResp.Header.Set("Content-Length", fmt.Sprint(fileInfo.Size))
-
 	var typ string
 	if strings.Contains(fileName, ".") {
 		ext := strings.Split(fileName, ".")
@@ -343,102 +372,89 @@ func (t *Transport) doTorrent(dow storage.TorrentDownloader, request *http.Reque
 	if typ == "" {
 		typ = "application/octet-stream"
 	}
+
+	fileLastIndex := fileInfo.Size
+	if fileLastIndex > 0 {
+		fileLastIndex -= 1
+	}
+	hasRange, from, to, err := t.parseRange(request, fileLastIndex)
+	if err != nil {
+		log.Println("invalid range:", err.Error())
+		return &http.Response{
+			Status:        "Invalid range",
+			StatusCode:    416,
+			Proto:         "HTTP/1.1",
+			ProtoMajor:    1,
+			ProtoMinor:    1,
+			Header:        map[string][]string{},
+			ContentLength: 0,
+			Trailer:       map[string][]string{},
+			Request:       request,
+		}, nil
+	}
+
+	pieces := make([]uint32, 0, (fileInfo.ToPiece-fileInfo.FromPiece)+1)
+	piecesMap := make(map[uint32]bool, cap(pieces))
+
+	var offFrom, offTo uint64 = 0, 0
+	for piece := fileInfo.FromPiece; piece <= fileInfo.ToPiece; piece++ {
+		sz := bag.torrent.Info.PieceSize
+		if piece == fileInfo.ToPiece {
+			sz = fileInfo.ToPieceOffset
+		}
+		if piece == fileInfo.FromPiece {
+			sz -= fileInfo.FromPieceOffset
+		}
+
+		offTo += uint64(sz)
+		if offTo >= from && offFrom <= to {
+			piecesMap[piece] = true
+			pieces = append(pieces, piece)
+		}
+		offFrom = offTo
+	}
+
+	httpResp := &http.Response{
+		Status:        "OK",
+		StatusCode:    http.StatusOK,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		Header:        map[string][]string{},
+		ContentLength: int64((to + 1) - from),
+		Trailer:       map[string][]string{},
+		Request:       request,
+	}
+
+	if hasRange {
+		httpResp.StatusCode = http.StatusPartialContent
+		httpResp.Status = http.StatusText(http.StatusPartialContent)
+
+		httpResp.Header.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", from, to, fileInfo.Size))
+		httpResp.Header.Set("Content-Length", fmt.Sprint((to+1)-from))
+	} else {
+		httpResp.Header.Set("Content-Length", fmt.Sprint(fileInfo.Size))
+		httpResp.Header.Set("Accept-Ranges", "bytes")
+	}
 	httpResp.Header.Set("Content-Type", typ)
 
-	type partResult struct {
-		part uint32
-		data []byte
-	}
+	if len(pieces) > 0 {
+		fetch := storage.NewPreFetcher(request.Context(), bag.torrent, bag.downloader, func(event storage.Event) {}, 0, 8, 50, pieces)
+		stream := newDataStreamer()
+		httpResp.Body = stream
 
-	// scale depends on file size
-	var threads = 1
-	threads += int(fileInfo.ToPiece-fileInfo.FromPiece) / 50
-	if threads > 12 {
-		threads = 12
-	}
-	wantNodes := int(fileInfo.ToPiece-fileInfo.FromPiece) / 600
-	if wantNodes > 1 {
-		// TODO: not decrease if small file in parallel
-		// dow.SetDesiredMinNodesNum(wantNodes)
-		// TODO: fix slowdown on bad nodes
-	}
-
-	threadsCtx, stopThreads := context.WithCancel(request.Context())
-	ch := make(chan uint32, threads*10)
-	chResults := make(chan partResult, threads)
-	for tr := 0; tr < threads; tr++ {
 		go func() {
-			for {
-				var i uint32
-				select {
-				case <-threadsCtx.Done():
-					return
-				case i = <-ch:
-				}
+			defer fetch.Stop()
 
-				tm := time.Now()
-				buf, err := dow.DownloadPiece(threadsCtx, i)
-				if err != nil {
-					return
-				}
-				log.Println("DOWNLOADED PIECE ", i, "/", fileInfo.ToPiece, "TOOK:", time.Since(tm).String(), runtime.NumGoroutine())
-
-				if i == fileInfo.ToPiece {
-					buf = buf[:fileInfo.ToPieceOffset]
-				}
-				if i == fileInfo.FromPiece {
-					buf = buf[fileInfo.FromPieceOffset:]
-				}
-
-				chResults <- partResult{part: i, data: buf}
-			}
-		}()
-	}
-
-	preloadPartsNum := uint32(threads)
-	if preloadPartsNum > fileInfo.ToPiece-fileInfo.FromPiece {
-		preloadPartsNum = fileInfo.ToPiece - fileInfo.FromPiece
-	}
-
-	for i := uint32(0); i <= preloadPartsNum; i++ {
-		ch <- fileInfo.FromPiece + i
-	}
-
-	stream := newDataStreamer()
-	httpResp.Body = stream
-
-	go func() {
-		cache := map[uint32][]byte{}
-		for i := fileInfo.FromPiece; i <= fileInfo.ToPiece; {
-			part, ok := cache[i]
-			if !ok {
-				block := <-chResults
-				if block.part != i {
-					cache[block.part] = block.data
-					// not ++ i pointer, since it is not needed part
-					continue
-				}
-				part = block.data
-			} else {
-				delete(cache, i)
-			}
-
-			_, err := stream.Write(part)
+			err := t.proxyOrdered(request.Context(), fileInfo, piecesMap, fetch, stream, si, bag.torrent.Info.PieceSize, from, to)
 			if err != nil {
 				_ = stream.Close()
+				log.Println("download ordered err: %w", err)
 				return
 			}
-
-			// add task to load one more part, since we have free processing slot
-			if preloadPartsNum <= fileInfo.ToPiece {
-				ch <- preloadPartsNum
-				preloadPartsNum++
-			}
-			i++
-		}
-		stream.Finish()
-		stopThreads()
-	}()
+			stream.Finish()
+		}()
+	}
 
 	return httpResp, nil
 }
@@ -634,21 +650,38 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 	}
 
 	if inStorage {
-		log.Println("SEARCHING FOR BAG ID", hex.EncodeToString(id))
+		log.Println("SEARCHING FOR BAG ID", hex.EncodeToString(id), "OF", host)
 
-		dow, err := t.storage.CreateDownloader(ctx, id, 1, 3)
+		torrent := storage.NewTorrent("", t.store, t.storageConnector)
+		torrent.BagID = id
+
+		_ = t.store.SetTorrent(torrent)
+
+		if err = torrent.Start(true, false, false); err != nil {
+			return nil, fmt.Errorf("failed to start bag %s, err: %w", host, err)
+		}
+		log.Println("STARTING FOR BAG ID", hex.EncodeToString(id), "OF", host)
+
+		downloader, err := t.storageConnector.CreateDownloader(context.Background(), torrent, 1, 3)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create downloader for storage bag of %s, err: %w", host, err)
 		}
-		log.Println("BAG FOUND", hex.EncodeToString(id))
 
-		return dow, nil
+		log.Println("BAG FOUND", hex.EncodeToString(id), "OF", host)
+		return &bagInfo{
+			torrent:    torrent,
+			downloader: downloader,
+		}, nil
 	}
+
+	log.Println("RESOLVING TON SITE", host, "NODE", hex.EncodeToString(id), "ADDRESS")
 
 	addresses, pubKey, err := t.dht.FindAddresses(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find address of %s (%s) in DHT, err: %w", host, hex.EncodeToString(id), err)
 	}
+
+	log.Println("TON SITE", host, "NODE", hex.EncodeToString(id), "ADDRESS RESOLVED")
 
 	var addr string
 	var client RLDP
@@ -656,9 +689,13 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 	for _, v := range addresses.Addresses {
 		addr = fmt.Sprintf("%s:%d", v.IP.String(), v.Port)
 
+		log.Println("CONNECTING TO TON SITE", host, "NODE", hex.EncodeToString(id), "USING ADDRESS", addr)
+
 		// find working rldp node addr
 		client, err = t.connectRLDP(ctx, pubKey, addr, host)
 		if err != nil {
+			log.Println("CONNECTION TO TON SITE", host, "NODE", hex.EncodeToString(id), "USING ADDRESS", addr, "FAILED")
+
 			triedAddresses = append(triedAddresses, addr)
 			continue
 		}
@@ -669,10 +706,130 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 		return nil, fmt.Errorf("failed to connect to rldp servers %s of host %s, err: %w", triedAddresses, host, err)
 	}
 
+	log.Println("TON SITE", host, "NODE", hex.EncodeToString(id), "CONNECTED", addr)
+
 	info := &rldpInfo{
 		ActiveClient: client,
 		ID:           pubKey,
 		Addr:         addr,
 	}
 	return info, nil
+}
+
+func (t *Transport) proxyOrdered(ctx context.Context, file *storage.FileInfo,
+	piecesMap map[uint32]bool, fetch *storage.PreFetcher, stream *dataStreamer, si *siteInfo,
+	pieceSz uint32, from, to uint64) error {
+	var err error
+	var currentPieceId uint32
+	var currentPiece []byte
+
+	notEmptyFile := file.FromPiece != file.ToPiece || file.FromPieceOffset != file.ToPieceOffset
+	if notEmptyFile {
+		var toOff uint64
+		var wasFirst bool
+		for piece := file.FromPiece; piece <= file.ToPiece; piece++ {
+			sz := pieceSz
+			if piece == file.ToPiece {
+				sz = file.ToPieceOffset
+			}
+			if piece == file.FromPiece {
+				sz -= file.FromPieceOffset
+			}
+			toOff += uint64(sz)
+
+			if !piecesMap[piece] {
+				continue
+			}
+
+			if piece != currentPieceId || currentPiece == nil {
+				if currentPiece != nil {
+					fetch.Free(currentPieceId)
+				}
+
+				atomic.StoreInt64(&si.LastUsed, time.Now().Unix())
+
+				currentPiece, _, err = fetch.Get(ctx, piece)
+				if err != nil {
+					return fmt.Errorf("failed to download piece %d: %w", piece, err)
+				}
+
+				currentPieceId = piece
+			}
+			part := currentPiece
+			if piece == file.ToPiece {
+				part = part[:file.ToPieceOffset]
+			}
+			if piece == file.FromPiece {
+				part = part[file.FromPieceOffset:]
+			}
+
+			if toOff > to {
+				diff := toOff - to
+				part = part[:len(part)-int(diff)]
+			}
+
+			fromOff := toOff - uint64(sz)
+			if !wasFirst && from > fromOff {
+				part = part[from-fromOff:]
+			}
+			wasFirst = true
+
+			_, err = stream.Write(part)
+			if err != nil {
+				return fmt.Errorf("failed to write piece %d: %w", piece, err)
+			}
+		}
+	}
+	if err != nil {
+		return err
+	}
+
+	if currentPiece != nil {
+		fetch.Free(currentPieceId)
+	}
+	return nil
+}
+
+func (t *Transport) parseRange(request *http.Request, max uint64) (hasRange bool, from uint64, to uint64, err error) {
+	rng := request.Header.Get("Range")
+	if len(rng) > 6 && strings.HasPrefix(rng, "bytes=") {
+		ranges := strings.SplitN(rng[6:], ",", 2)
+		if len(ranges) > 1 {
+			return false, 0, 0, fmt.Errorf("multiple ranges not supported")
+		}
+
+		rngArr := strings.SplitN(ranges[0], "-", 2)
+		if len(rngArr) != 2 {
+			return false, 0, 0, fmt.Errorf("invalid range format")
+		}
+
+		if rngArr[0] != "" {
+			from, err = strconv.ParseUint(rngArr[0], 10, 64)
+			if err != nil {
+				return false, 0, 0, err
+			}
+			if from > max {
+				return false, 0, 0, fmt.Errorf("invalid from range, over max")
+			}
+		}
+
+		if rngArr[1] != "" {
+			to, err = strconv.ParseUint(rngArr[1], 10, 64)
+			if err != nil {
+				return false, 0, 0, err
+			}
+
+			if to > max {
+				return false, 0, 0, fmt.Errorf("invalid to range, over max")
+			}
+		} else {
+			to = max
+		}
+
+		if from > to {
+			return false, 0, 0, fmt.Errorf("invalid range, from > to (%d > %d)", from, to)
+		}
+		return true, from, to, nil
+	}
+	return false, 0, max, nil
 }
