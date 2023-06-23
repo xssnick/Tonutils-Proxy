@@ -108,7 +108,7 @@ function App() {
                 <div style={{display: "flex", justifyContent: "center", justifyItems: "center"}}>
                     <p className="foot-text"><b>Developed with ❤️ by <a className="utils-link"  onClick={() => {BrowserOpenURL("https://t.me/tonrh")}}
                                                                         href="#">Tonutils</a> team</b></p>
-                    <p className="ver-text"><b>v1.2.0</b></p>
+                    <p className="ver-text"><b>v1.2.1</b></p>
                 </div>
             </div>
         </div>
