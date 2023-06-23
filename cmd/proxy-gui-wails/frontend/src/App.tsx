@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import './App.css';
 import {StartProxy, StopProxy} from "../wailsjs/go/main/App";
-import {EventsOn} from "../wailsjs/runtime";
+import {BrowserOpenURL, EventsOn} from "../wailsjs/runtime";
 
 function App() {
     const [resultText, setResultText] = useState("Not initialized");
@@ -106,9 +106,9 @@ function App() {
             </div>
             <div className="footerTitle">
                 <div style={{display: "flex", justifyContent: "center", justifyItems: "center"}}>
-                    <p className="foot-text"><b>Developed with ❤️ by <a className="utils-link"
+                    <p className="foot-text"><b>Developed with ❤️ by <a className="utils-link"  onClick={() => {BrowserOpenURL("https://t.me/tonrh")}}
                                                                         href="#">Tonutils</a> team</b></p>
-                    <p className="ver-text"><b>v1.0.0</b></p>
+                    <p className="ver-text"><b>v1.1.0</b></p>
                 </div>
             </div>
         </div>
