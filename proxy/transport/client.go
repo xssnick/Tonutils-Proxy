@@ -763,8 +763,9 @@ func (t *Transport) proxyOrdered(ctx context.Context, file *storage.FileInfo,
 				part = part[file.FromPieceOffset:]
 			}
 
-			if toOff > to {
-				diff := toOff - to
+			toOffIdx := toOff - 1
+			if toOffIdx > to {
+				diff := toOffIdx - to
 				part = part[:len(part)-int(diff)]
 			}
 

@@ -61,6 +61,7 @@ func appendHostToXForwardHeader(header http.Header, host string) {
 }
 
 type proxy struct {
+	blockHttp bool
 }
 
 var client *http.Client
@@ -94,6 +95,11 @@ func (p *proxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		// proxy requests to ton using special client
 		c = client
 	} else {
+		if p.blockHttp {
+			http.Error(wr, "HTTP Not allowed", http.StatusBadRequest)
+			return
+		}
+
 		log.Println("OVER HTTP", " ", req.Method, " ", req.URL)
 	}
 
@@ -125,7 +131,7 @@ type State struct {
 	Stopped bool
 }
 
-func StartProxy(addr string, debug bool, res chan<- State) error {
+func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) error {
 	report := func(s State) {
 		if res != nil {
 			res <- s
@@ -219,7 +225,7 @@ func StartProxy(addr string, debug bool, res chan<- State) error {
 
 	log.Println("Starting proxy server on", addr)
 
-	server := http.Server{Addr: addr, Handler: &proxy{}}
+	server := http.Server{Addr: addr, Handler: &proxy{blockHttp: blockHttp}}
 
 	go func() {
 		if err = server.ListenAndServe(); err != nil {
