@@ -32,5 +32,5 @@ ndk_android_ver:=21
 ndk_cc:=$(ndk)/toolchains/llvm/prebuilt/$(ndk_arch)/bin/aarch64-linux-android$(ndk_android_ver)-clang
 
 build-android-lib:
-	CC=$(ndk_cc) CGO_ENABLED=1 GOOS=android GOARCH=arm64 go build -buildmode c-archive -trimpath -gcflags=all="-l -B" -ldflags="-w -s" -o build/lib/android/tonutils-proxy.a lib/main.go
+	CC=$(ndk_cc) CGO_ENABLED=1 GOOS=android GOARCH=arm64 go build -buildmode c-shared -trimpath -gcflags=all="-l -B" -ldflags="-w -s" -o build/lib/android/tonutils-proxy.so lib/main.go
 
