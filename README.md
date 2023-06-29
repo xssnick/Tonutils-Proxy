@@ -20,10 +20,9 @@ If you love this product and want to support its development you can donate any 
 * [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/GUI.Mac.Intel.Tonutils.Proxy.dmg)
 * [Download Windows (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/GUI-Windows-x64-Tonutils-Proxy.exe)
 * [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/tonutils-proxy-cli-linux-amd64)
-
-You can also find executable for most popular platforms in [Releases](https://github.com/xssnick/Tonutils-Proxy/releases).
-
-If executable is missing for your platform, you can [join our group](https://t.me/tonrh) and ask for it, we may add it to releases list.
+* [Other binaries](https://github.com/xssnick/Tonutils-Proxy/releases)
+  
+See [How to use](https://github.com/xssnick/Tonutils-Proxy#how-to-use).
 
 ### Integrate into your mobile app
 You could compile for IOS and Android by yourself using `make build-ios-lib` and `make build-android-lib`. 
@@ -34,6 +33,16 @@ Or you could use precompiled libs.
 ##### Precompilled
 * [Download IOS Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/ios-lib.zip)
 * [Download Android Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/android-lib.zip)
+
+#### Usage
+Connect it as native library to you app, and use available methods:
+```c
+extern char* StartProxy(unsigned short port);
+extern char* StartProxyWithConfig(unsigned short port, char* configTextJSON);
+extern char* StopProxy();
+```
+`StartProxy` will run local http proxy server on `127.0.0.1:port`. 
+Use this server as http proxy in your webview component or in any other way.
 
 # How to use
 
