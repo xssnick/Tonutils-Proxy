@@ -19,7 +19,7 @@ func main() {
 		log.Println("Ordinary HTTP Will be blocked (flag --no-http set)")
 	}
 
-	_, err := proxy.StartProxy(*addr, *debug, nil, *blockHttp)
+	_, err := proxy.StartProxy(*addr, *debug, nil, "CLI "+GitCommit, *blockHttp)
 	if err != nil {
 		log.Println("failed to start proxy:", err.Error())
 		return
