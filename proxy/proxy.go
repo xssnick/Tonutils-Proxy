@@ -61,6 +61,7 @@ func appendHostToXForwardHeader(header http.Header, host string) {
 }
 
 type proxy struct {
+	version   string
 	blockHttp bool
 }
 
@@ -87,6 +88,7 @@ func (p *proxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
 		appendHostToXForwardHeader(req.Header, clientIP)
 	}
+	req.Header.Set("X-Tonutils-Proxy", p.version)
 
 	var c = http.DefaultClient
 	if strings.HasSuffix(req.Host, ".ton") || strings.HasSuffix(req.Host, ".adnl") ||
@@ -140,7 +142,7 @@ type Proxy struct {
 	connPool   *liteclient.ConnectionPool
 }
 
-func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) (*Proxy, error) {
+func StartProxy(addr string, debug bool, res chan<- State, versionAndDevice string, blockHttp bool) (*Proxy, error) {
 	if res != nil {
 		res <- State{
 			Type:  "loading",
@@ -158,10 +160,10 @@ func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) (*Pro
 		}
 	}
 
-	return StartProxyWithConfig(addr, debug, res, blockHttp, lsCfg)
+	return StartProxyWithConfig(addr, debug, res, blockHttp, versionAndDevice, lsCfg)
 }
 
-func StartProxyWithConfig(addr string, debug bool, res chan<- State, blockHttp bool, lsCfg *liteclient.GlobalConfig) (*Proxy, error) {
+func StartProxyWithConfig(addr string, debug bool, res chan<- State, blockHttp bool, versionAndDevice string, lsCfg *liteclient.GlobalConfig) (*Proxy, error) {
 	report := func(s State) {
 		if res != nil {
 			res <- s
@@ -241,7 +243,7 @@ func StartProxyWithConfig(addr string, debug bool, res chan<- State, blockHttp b
 
 	log.Println("Starting proxy server on", addr)
 
-	server := http.Server{Addr: addr, Handler: &proxy{blockHttp: blockHttp}}
+	server := http.Server{Addr: addr, Handler: &proxy{blockHttp: blockHttp, version: versionAndDevice}}
 
 	go func() {
 		if err = server.ListenAndServe(); err != nil {

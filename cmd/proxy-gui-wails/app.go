@@ -50,7 +50,7 @@ func (a *App) StartProxy() {
 	if !a.proxyStarted {
 		a.proxyStarted = true
 		go func() {
-			_ = proxy.StartProxy("127.0.0.1:8080", false, a.statusUpd, false)
+			_, _ = proxy.StartProxy("127.0.0.1:8080", false, a.statusUpd, "GUI 1.3", false)
 			err := access.SetProxy("127.0.0.1:8080")
 			if err != nil {
 				println(err.Error())
