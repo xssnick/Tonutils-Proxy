@@ -16,14 +16,24 @@ If you love this product and want to support its development you can donate any 
 `EQBx6tZZWa2Tbv6BvgcvegoOQxkRrVaBVwBOoW85nbP37_Go`
 
 ### Download precompiled version
-* [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.2.1/GUI.Mac.M1.Tonutils.Proxy.dmg)
-* [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.2.1/GUI.Mac.Intel.Tonutils.Proxy.dmg)
-* [Download Windows (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.2.1/GUI-Windows-x64-Tonutils-Proxy.exe)
-* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.2.1/tonutils-proxy-cli-linux-amd64)
+* [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/GUI.Mac.M1.Tonutils.Proxy.dmg)
+* [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/GUI.Mac.Intel.Tonutils.Proxy.dmg)
+* [Download Windows (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/GUI-Windows-x64-Tonutils-Proxy.exe)
+* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/tonutils-proxy-cli-linux-amd64)
 
 You can also find executable for most popular platforms in [Releases](https://github.com/xssnick/Tonutils-Proxy/releases).
 
 If executable is missing for your platform, you can [join our group](https://t.me/tonrh) and ask for it, we may add it to releases list.
+
+### Integrate into your mobile app
+You could compile for IOS and Android by yourself using `make build-ios-lib` and `make build-android-lib`. 
+To compile for IOS, XCode tools and Mac are required, for Android you need NDK toolchain.
+
+Or you could use precompiled libs.
+
+##### Precompilled
+* [Download IOS Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/ios-lib.zip)
+* [Download Android Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/android-lib.zip)
 
 # How to use
 
