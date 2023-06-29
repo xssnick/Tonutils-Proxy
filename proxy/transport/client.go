@@ -93,6 +93,8 @@ type Transport struct {
 	activeSites map[string]*siteInfo
 
 	activeRequests map[string]*payloadStream
+	globalCtx      context.Context
+	stop           func()
 	mx             sync.RWMutex
 }
 
@@ -105,13 +107,20 @@ func NewTransport(dht DHT, resolver Resolver, storeConn storage.NetConnector, st
 		activeRequests:   map[string]*payloadStream{},
 		activeSites:      map[string]*siteInfo{},
 	}
+	t.globalCtx, t.stop = context.WithCancel(context.Background())
 	go t.cleaner()
 	return t
+}
+
+func (t *Transport) Stop() {
+	t.stop()
 }
 
 func (t *Transport) cleaner() {
 	for {
 		select {
+		case <-t.globalCtx.Done():
+			return
 		case <-time.After(3 * time.Second):
 		}
 
@@ -250,6 +259,12 @@ func handleGetPart(req rldphttp.GetNextPayloadPart, stream *payloadStream) (*rld
 }
 
 func (s *siteInfo) prepare(t *Transport, request *http.Request) (err error) {
+	select {
+	case <-t.globalCtx.Done():
+		return t.globalCtx.Err()
+	default:
+	}
+
 	if s.Actor == nil {
 		s.Actor, err = t.resolve(request.Context(), request.Host)
 		if err != nil {
@@ -296,8 +311,11 @@ func (t *Transport) RoundTrip(request *http.Request) (_ *http.Response, err erro
 	var rldpClient RLDP
 	var torrent *bagInfo
 
+	tm := time.Now()
 	site.mx.Lock()
 	err = site.prepare(t, request)
+	log.Println("prepare took:", time.Since(tm).String())
+
 	if err != nil {
 		site.mx.Unlock()
 		return nil, fmt.Errorf("failed to connect to site: %w", err)
@@ -633,18 +651,47 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 		}
 		inStorage = true
 	} else {
+		tm := time.Now()
+		lookupCtx, stopLookup := context.WithCancel(ctx)
+		ch := make(chan *dns.Domain, 3)
+		for i := 0; i < 3; i++ { // do parallel lookup on diff nodes to speedup
+			go func(i int) {
+				for {
+					// each new thread has bigger timeout, to cover users with high ping
+					resolveCtx, cancel := context.WithTimeout(lookupCtx, time.Duration((i+1)*2)*time.Second)
+					domain, err := t.resolver.Resolve(resolveCtx, host)
+					cancel()
+					if err != nil {
+						if lookupCtx.Err() != nil {
+							return
+						}
+
+						if errors.Is(err, dns.ErrNoSuchRecord) {
+							ch <- nil
+							return
+						}
+						log.Println("domain", host, "resolve err: ", err.Error())
+						continue
+					}
+
+					ch <- domain
+					return
+				}
+			}(i)
+		}
+
 		var domain *dns.Domain
-		for i := 0; i < 3; i++ {
-			domain, err = t.resolver.Resolve(ctx, host)
-			if err != nil {
-				time.Sleep(50 * time.Millisecond)
-				continue
+		select {
+		case domain = <-ch:
+			stopLookup()
+			if domain == nil {
+				return nil, fmt.Errorf("domain %s resolve err: %w", host, dns.ErrNoSuchRecord)
 			}
-			break
+		case <-lookupCtx.Done():
+			stopLookup() // to turn off warning
+			return nil, fmt.Errorf("failed to resolve domain %s in ton dns", host)
 		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve host %s, err: %w", host, err)
-		}
+		log.Println("resolve domain", host, "took:", time.Since(tm).String())
 
 		id, inStorage = domain.GetSiteRecord()
 	}
@@ -662,7 +709,7 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 		}
 		log.Println("STARTING FOR BAG ID", hex.EncodeToString(id), "OF", host)
 
-		downloader, err := t.storageConnector.CreateDownloader(context.Background(), torrent, 1, 3)
+		downloader, err := t.storageConnector.CreateDownloader(t.globalCtx, torrent, 1, 3)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create downloader for storage bag of %s, err: %w", host, err)
 		}

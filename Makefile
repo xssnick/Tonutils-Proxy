@@ -1,6 +1,6 @@
 ver := $(shell git log -1 --pretty=format:%h)
 
-compile:
+build-all-cli:
 	mkdir -p build/cli
 	echo "Building MAC CLI ARM"
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.GitCommit=$(ver)" -o build/cli/tonutils-proxy-cli-darwin-arm64 cmd/proxy-cli/main.go
@@ -18,7 +18,7 @@ clang_path=$(shell xcrun --sdk ${sdk} --find clang)
 goRoot=$(shell go env GOROOT)
 
 build-ios-lib:
-	SDK=$(sdk) CGO_ENABLED=1 CGO_CFLAGS="-fembed-bitcode" GOOS=ios GOARCH=$(arch) CC=$(goRoot)/misc/ios/clangwrap.sh go build -buildmode c-archive -trimpath -gcflags=all="-l -B" -ldflags="-w -s" -o build/lib/ios/tonutils-proxy.a lib/main.go
+	SDK=$(sdk) CGO_ENABLED=1 CGO_CFLAGS="-fembed-bitcode" GOOS=ios GOARCH=$(arch) CC=$(goRoot)/misc/ios/clangwrap.sh go build -buildmode c-archive -trimpath -gcflags=all="-l" -ldflags="-w -s" -o build/lib/ios/tonutils-proxy.a lib/main.go
 
 # example: /home/user/android-ndk-r25c
 ndk:=${NDK_PATH}
@@ -32,5 +32,5 @@ ndk_android_ver:=21
 ndk_cc:=$(ndk)/toolchains/llvm/prebuilt/$(ndk_arch)/bin/aarch64-linux-android$(ndk_android_ver)-clang
 
 build-android-lib:
-	CC=$(ndk_cc) CGO_ENABLED=1 GOOS=android GOARCH=arm64 go build -buildmode c-shared -trimpath -gcflags=all="-l -B" -ldflags="-w -s" -o build/lib/android/tonutils-proxy.so lib/main.go
+	CC=$(ndk_cc) CGO_ENABLED=1 GOOS=android GOARCH=arm64 go build -buildmode c-shared -trimpath -gcflags=all="-l" -ldflags="-w -s" -o build/lib/android/tonutils-proxy.so lib/main.go
 

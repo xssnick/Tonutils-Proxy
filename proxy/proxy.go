@@ -131,17 +131,22 @@ type State struct {
 	Stopped bool
 }
 
-func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) error {
-	report := func(s State) {
-		if res != nil {
-			res <- s
+type Proxy struct {
+	httpServer *http.Server
+	dht        *dht.Client
+	tr         *transport.Transport
+	st         *storage.Server
+	gate       *adnl.Gateway
+	connPool   *liteclient.ConnectionPool
+}
+
+func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) (*Proxy, error) {
+	if res != nil {
+		res <- State{
+			Type:  "loading",
+			State: "Fetching network config...",
 		}
 	}
-
-	report(State{
-		Type:  "loading",
-		State: "Fetching network config...",
-	})
 
 	log.Println("Fetching TON network config...")
 	lsCfg, err := liteclient.GetConfigFromUrl(context.Background(), "https://ton.org/global.config.json")
@@ -149,7 +154,17 @@ func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) error
 		log.Println("Failed to download ton config:", err.Error(), "; We will take it from static cache")
 		lsCfg = &liteclient.GlobalConfig{}
 		if err = json.NewDecoder(bytes.NewBufferString(config.FallbackNetworkConfig)).Decode(lsCfg); err != nil {
-			return fmt.Errorf("failed to parse fallback ton config: %w", err)
+			return nil, fmt.Errorf("failed to parse fallback ton config: %w", err)
+		}
+	}
+
+	return StartProxyWithConfig(addr, debug, res, blockHttp, lsCfg)
+}
+
+func StartProxyWithConfig(addr string, debug bool, res chan<- State, blockHttp bool, lsCfg *liteclient.GlobalConfig) (*Proxy, error) {
+	report := func(s State) {
+		if res != nil {
+			res <- s
 		}
 	}
 
@@ -166,18 +181,18 @@ func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) error
 	log.Println("Initialising DHT client...")
 	_, dhtAdnlKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return fmt.Errorf("failed to generate ed25519 dht adnl key: %w", err)
+		return nil, fmt.Errorf("failed to generate ed25519 dht adnl key: %w", err)
 	}
 
 	gateway := adnl.NewGateway(dhtAdnlKey)
 	err = gateway.StartClient()
 	if err != nil {
-		return fmt.Errorf("failed to start adnl gateway: %w", err)
+		return nil, fmt.Errorf("failed to start adnl gateway: %w", err)
 	}
 
 	dhtClient, err := dht.NewClientFromConfig(gateway, lsCfg)
 	if err != nil {
-		return fmt.Errorf("failed to init DHT client: %w", err)
+		return nil, fmt.Errorf("failed to init DHT client: %w", err)
 	}
 
 	report(State{
@@ -186,9 +201,9 @@ func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) error
 	})
 
 	log.Println("Initialising DNS resolver...")
-	dnsClient, err := initDNSResolver(lsCfg)
+	connPool, dnsClient, err := initDNSResolver(lsCfg)
 	if err != nil {
-		return fmt.Errorf("failed to init TON DNS resolver: %w", err)
+		return nil, fmt.Errorf("failed to init TON DNS resolver: %w", err)
 	}
 
 	report(State{
@@ -199,12 +214,12 @@ func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) error
 	log.Println("Initialising RLDP transport layer...")
 	_, baseAdnlKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return fmt.Errorf("failed to generate ed25519 dht adnl key: %w", err)
+		return nil, fmt.Errorf("failed to generate ed25519 dht adnl key: %w", err)
 	}
 
 	gate := adnl.NewGateway(baseAdnlKey)
 	if err = gate.StartClient(); err != nil {
-		return fmt.Errorf("failed to init adnl gateway: %w", err)
+		return nil, fmt.Errorf("failed to init adnl gateway: %w", err)
 	}
 
 	// storage.Logger = log.Println
@@ -214,8 +229,9 @@ func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) error
 	store := transport.NewVirtualStorage()
 	srv.SetStorage(store)
 
+	t := transport.NewTransport(dhtClient, dnsClient, conn, store)
 	client = &http.Client{
-		Transport: transport.NewTransport(dhtClient, dnsClient, conn, store),
+		Transport: t,
 	}
 
 	report(State{
@@ -244,23 +260,40 @@ func StartProxy(addr string, debug bool, res chan<- State, blockHttp bool) error
 		}
 	}()
 
-	return nil
+	return &Proxy{
+		httpServer: &server,
+		dht:        dhtClient,
+		tr:         t,
+		st:         srv,
+		gate:       gate,
+		connPool:   connPool,
+	}, nil
 }
 
-func initDNSResolver(cfg *liteclient.GlobalConfig) (*dns.Client, error) {
+func (p *Proxy) Stop() {
+	p.httpServer.Close()
+
+	p.connPool.Stop()
+	p.st.Stop()
+	p.dht.Close()
+	p.gate.Close()
+	p.tr.Stop()
+}
+
+func initDNSResolver(cfg *liteclient.GlobalConfig) (*liteclient.ConnectionPool, *dns.Client, error) {
 	pool := liteclient.NewConnectionPool()
 
 	// connect to testnet lite server
 	err := pool.AddConnectionsFromConfig(context.Background(), cfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// initialize ton api lite connection wrapper
 	api := ton.NewAPIClient(pool)
 
 	var root *address.Address
-	for i := 0; i < 3; i++ { // retry to not get liteserver not found block err
+	for i := 0; i < 5; i++ { // retry to not get liteserver not found block err
 		// get root dns address from network config
 		root, err = dns.RootContractAddr(api)
 		if err != nil {
@@ -270,8 +303,8 @@ func initDNSResolver(cfg *liteclient.GlobalConfig) (*dns.Client, error) {
 		break
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return dns.NewDNSClient(api, root), nil
+	return pool, dns.NewDNSClient(api, root), nil
 }

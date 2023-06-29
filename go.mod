@@ -3,7 +3,7 @@ module github.com/xssnick/tonutils-proxy
 go 1.19
 
 require (
-	github.com/xssnick/tonutils-go v1.7.4-0.20230622063139-5549e796f8cd
+	github.com/xssnick/tonutils-go v1.7.4-0.20230629051815-26698fcb71f7
 	github.com/xssnick/tonutils-storage v0.1.1-0.20230623054832-14c7b2632595
 )
 
