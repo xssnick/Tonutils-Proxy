@@ -55,6 +55,7 @@ func StartProxyWithConfig(port C.ushort, configTextJSON *C.char) *C.char {
 func StopProxy() *C.char {
 	if ActiveProxy != nil {
 		ActiveProxy.Stop()
+		ActiveProxy = nil
 	}
 	return C.CString("OK")
 }

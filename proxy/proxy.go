@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/adnl"
@@ -247,6 +248,10 @@ func StartProxyWithConfig(addr string, debug bool, res chan<- State, blockHttp b
 
 	go func() {
 		if err = server.ListenAndServe(); err != nil {
+			if errors.Is(err, http.ErrServerClosed) {
+				return
+			}
+
 			log.Println("failed to init proxy server:", err.Error())
 
 			text := "Failed, check logs"

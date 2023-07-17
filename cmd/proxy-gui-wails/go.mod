@@ -39,7 +39,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	github.com/xssnick/tonutils-go v1.7.4-0.20230622063139-5549e796f8cd // indirect
+	github.com/xssnick/tonutils-go v1.7.4-0.20230629051815-26698fcb71f7 // indirect
 	github.com/xssnick/tonutils-storage v0.1.1-0.20230623054832-14c7b2632595 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561 // indirect
