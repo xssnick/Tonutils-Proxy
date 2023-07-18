@@ -30,9 +30,12 @@ To compile for IOS, XCode tools and Mac are required, for Android you need NDK t
 
 Or you could use precompiled libs.
 
-##### Precompilled
-* [Download IOS Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/ios-lib.zip)
+#### Precompilled
+* [Download iOS Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/ios-lib.zip)
 * [Download Android Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/android-lib.zip)
+
+##### Community projects
+* [Swift wrapper](https://github.com/0xstragner/ton-proxy-swift) for iOS library by [@0xstragner](https://github.com/0xstragner)
 
 #### Usage
 Connect it as native library to you app, and use available methods:
