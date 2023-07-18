@@ -16,10 +16,10 @@ If you love this product and want to support its development you can donate any 
 `EQBx6tZZWa2Tbv6BvgcvegoOQxkRrVaBVwBOoW85nbP37_Go`
 
 ### Download precompiled version
-* [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/GUI.Mac.M1.Tonutils.Proxy.dmg)
-* [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/GUI.Mac.Intel.Tonutils.Proxy.dmg)
-* [Download Windows (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/GUI-Windows-x64-Tonutils-Proxy.exe)
-* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/tonutils-proxy-cli-linux-amd64)
+* [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/GUI.Mac.M1.Tonutils.Proxy.dmg)
+* [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/GUI.Mac.Intel.Tonutils.Proxy.dmg)
+* [Download Windows (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/GUI-Windows-x64-Tonutils-Proxy.exe)
+* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/tonutils-proxy-cli-linux-amd64)
 * [Other binaries](https://github.com/xssnick/Tonutils-Proxy/releases)
   
 See [How to use](https://github.com/xssnick/Tonutils-Proxy#how-to-use).
@@ -31,8 +31,8 @@ To compile for IOS, XCode tools and Mac are required, for Android you need NDK t
 Or you could use precompiled libs.
 
 #### Precompilled
-* [Download iOS Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/ios-lib.zip)
-* [Download Android Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.0/android-lib.zip)
+* [Download iOS Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/ios-lib.zip)
+* [Download Android Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/android-lib.zip)
 
 ##### Community projects
 * [Swift wrapper](https://github.com/0xstragner/ton-proxy-swift) for iOS library by [@0xstragner](https://github.com/0xstragner)
