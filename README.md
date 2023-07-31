@@ -1,9 +1,8 @@
 # Tonutils Proxy
 [![Based on TON][ton-svg]][ton]
+<img align="right" width="300" alt="proxy" src="https://github.com/xssnick/Tonutils-Proxy/assets/9332353/3806a91c-61bf-4c3c-af6f-55c12ee4f18f">
 
 **Your gateway to the new internet**
-
-<img width="294" alt="Screen Shot 2022-11-21 at 18 15 16" src="https://user-images.githubusercontent.com/9332353/203090531-6b37d922-236b-4ff2-857b-dd4965cfa153.png">
 
 This is a user-friendly TON Proxy implementation. It works on any platform with UDP support. It can be used with any internet connection, and any type of ip.  
 
@@ -16,10 +15,10 @@ If you love this product and want to support its development you can donate any 
 `EQBx6tZZWa2Tbv6BvgcvegoOQxkRrVaBVwBOoW85nbP37_Go`
 
 ### Download precompiled version
-* [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/GUI.Mac.M1.Tonutils.Proxy.dmg)
-* [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/GUI.Mac.Intel.Tonutils.Proxy.dmg)
-* [Download Windows (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/GUI-Windows-x64-Tonutils-Proxy.exe)
-* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/tonutils-proxy-cli-linux-amd64)
+* [Download Mac M1 (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.4.0/GUI.Mac.M1.Tonutils.Proxy.dmg)
+* [Download Mac Intel (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.4.0/GUI.Mac.Intel.Tonutils.Proxy.dmg)
+* [Download Windows (GUI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.4.0/GUI-Windows-x64-Tonutils-Proxy.exe)
+* [Download Linux (CLI)](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.4.0/tonutils-proxy-cli-linux-amd64)
 * [Other binaries](https://github.com/xssnick/Tonutils-Proxy/releases)
   
 See [How to use](https://github.com/xssnick/Tonutils-Proxy#how-to-use).
@@ -31,8 +30,8 @@ To compile for IOS, XCode tools and Mac are required, for Android you need NDK t
 Or you could use precompiled libs.
 
 #### Precompilled
-* [Download iOS Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/ios-lib.zip)
-* [Download Android Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.3.1/android-lib.zip)
+* [Download iOS Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.4.0/ios-lib.zip)
+* [Download Android Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.4.0/android-lib.zip)
 
 ##### Community projects
 * [Swift wrapper](https://github.com/0xstragner/ton-proxy-swift) for iOS library by [@0xstragner](https://github.com/0xstragner)
@@ -50,13 +49,8 @@ Use this server as http proxy in your webview component or in any other way.
 # How to use
 
 ## GUI
-#### 1. Open it
-You should see:
-
-<img width="303" alt="Screen Shot 2022-11-21 at 18 13 11" src="https://user-images.githubusercontent.com/9332353/203090096-1c03907b-7d29-4be2-83df-d689d2151f08.png">
-
-#### 2. Start it
-Click "Start Gateway", it will configure your system automatically and open foundation.ton.
+#### Start it
+Click big blue button, it will configure your system automatically and open foundation.ton.
 
 ##### If TON sites not opens
 If for some reason your system was not autoconfigured or you don't want to reconfigure it, you can enter HTTP proxy address manually in your browser. Follow CLI instructions starting from [section 2](#2-connect-your-browser-to-it). 
