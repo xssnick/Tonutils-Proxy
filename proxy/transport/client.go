@@ -265,8 +265,13 @@ func (s *siteInfo) prepare(t *Transport, request *http.Request) (err error) {
 	default:
 	}
 
+	host := request.Host
+	if host == "" {
+		host = request.URL.Host
+	}
+
 	if s.Actor == nil {
-		s.Actor, err = t.resolve(request.Context(), request.Host)
+		s.Actor, err = t.resolve(request.Context(), host)
 		if err != nil {
 			return err
 		}
@@ -287,7 +292,7 @@ func (s *siteInfo) prepare(t *Transport, request *http.Request) (err error) {
 		}
 
 		if act.ActiveClient == nil {
-			act.ActiveClient, err = t.connectRLDP(request.Context(), act.ID, act.Addr, request.Host)
+			act.ActiveClient, err = t.connectRLDP(request.Context(), act.ID, act.Addr, host)
 			if err != nil {
 				// resolve again
 				s.Actor = nil
@@ -300,11 +305,16 @@ func (s *siteInfo) prepare(t *Transport, request *http.Request) (err error) {
 }
 
 func (t *Transport) RoundTrip(request *http.Request) (_ *http.Response, err error) {
+	host := request.Host
+	if host == "" {
+		host = request.URL.Host
+	}
+
 	t.mx.Lock()
-	site := t.activeSites[request.Host]
+	site := t.activeSites[host]
 	if site == nil {
 		site = &siteInfo{}
-		t.activeSites[request.Host] = site
+		t.activeSites[host] = site
 	}
 	t.mx.Unlock()
 
@@ -330,7 +340,7 @@ func (t *Transport) RoundTrip(request *http.Request) (_ *http.Response, err erro
 	site.mx.Unlock()
 
 	if rldpClient != nil {
-		resp, err := t.doRldpHttp(rldpClient, request)
+		resp, err := t.doRldpHttp(rldpClient, host, request)
 		if err != nil {
 			return nil, fmt.Errorf("failed to request rldp-http site: %w", err)
 		}
@@ -477,7 +487,7 @@ func (t *Transport) doTorrent(bag *bagInfo, request *http.Request, si *siteInfo)
 	return httpResp, nil
 }
 
-func (t *Transport) doRldpHttp(client RLDP, request *http.Request) (*http.Response, error) {
+func (t *Transport) doRldpHttp(client RLDP, host string, request *http.Request) (*http.Response, error) {
 	qid := make([]byte, 32)
 	_, err := rand.Read(qid)
 	if err != nil {
@@ -492,7 +502,7 @@ func (t *Transport) doRldpHttp(client RLDP, request *http.Request) (*http.Respon
 		Headers: []rldphttp.Header{
 			{
 				Name:  "Host",
-				Value: request.Host,
+				Value: host,
 			},
 		},
 	}
