@@ -7,15 +7,16 @@ import (
 	"github.com/xssnick/tonutils-proxy/proxy"
 	"github.com/xssnick/tonutils-proxy/proxy/access"
 	"log"
-	"os"
 	"os/exec"
 	rt "runtime"
+	"sync"
 )
 
 // App struct
 type App struct {
 	ctx context.Context
 
+	proxy        *proxy.Proxy
 	statusUpd    chan proxy.State
 	proxyStarted bool
 }
@@ -46,24 +47,42 @@ func (a *App) shutdown(ctx context.Context) {
 	}
 }
 
+var openOnce sync.Once
+
 func (a *App) StartProxy() {
 	if !a.proxyStarted {
 		a.proxyStarted = true
 		go func() {
-			_, _ = proxy.StartProxy("127.0.0.1:8080", false, a.statusUpd, "GUI 1.3", false)
-			err := access.SetProxy("127.0.0.1:8080")
+			var err error
+			a.proxy, err = proxy.StartProxy("127.0.0.1:8080", false, a.statusUpd, "GUI 1.4", false)
 			if err != nil {
 				println(err.Error())
+			} else {
+				err = access.SetProxy("127.0.0.1:8080")
+				if err != nil {
+					println(err.Error())
+				} else {
+					openOnce.Do(func() {
+						openbrowser("http://foundation.ton/")
+					})
+				}
 			}
-
-			openbrowser("http://foundation.ton/")
 		}()
 	}
 }
 
 func (a *App) StopProxy() {
+	runtime.EventsEmit(a.ctx, "statusUpdate", "loading", "stopping")
+
 	_ = access.ClearProxy()
-	os.Exit(0)
+	if a.proxy != nil {
+		a.proxy.Stop()
+		a.proxy = nil
+		a.proxyStarted = false
+	}
+	runtime.EventsEmit(a.ctx, "statusUpdate", "stopped", "stopped")
+
+	// os.Exit(0)
 }
 
 func openbrowser(url string) {
