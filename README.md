@@ -35,6 +35,7 @@ Or you could use precompiled libs.
 
 ##### Community projects
 * [Swift wrapper](https://github.com/0xstragner/ton-proxy-swift) for iOS library by [@0xstragner](https://github.com/0xstragner)
+* [Kotlin example](https://github.com/andreypfau/tonutils-proxy-android-example) for Android by [@andreypfau](https://github.com/andreypfau)
 
 #### Usage
 Connect it as native library to you app, and use available methods:
