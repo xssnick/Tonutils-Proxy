@@ -226,7 +226,7 @@ func StartProxyWithConfig(addr string, debug bool, res chan<- State, blockHttp b
 	}
 
 	// storage.Logger = log.Println
-	srv := storage.NewServer(dhtClient, gate, baseAdnlKey, false, false)
+	srv := storage.NewServer(dhtClient, gate, baseAdnlKey, false)
 	conn := storage.NewConnector(srv)
 
 	store := transport.NewVirtualStorage()

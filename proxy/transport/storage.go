@@ -3,6 +3,7 @@ package transport
 import (
 	"fmt"
 	"github.com/xssnick/tonutils-go/adnl"
+	"github.com/xssnick/tonutils-go/tl"
 	"github.com/xssnick/tonutils-storage/storage"
 	"sync"
 )
@@ -32,7 +33,7 @@ func (v *VirtualStorage) GetTorrentByOverlay(overlay []byte) *storage.Torrent {
 }
 
 func (v *VirtualStorage) SetTorrent(t *storage.Torrent) error {
-	id, err := adnl.ToKeyID(adnl.PublicKeyOverlay{Key: t.BagID})
+	id, err := tl.Hash(adnl.PublicKeyOverlay{Key: t.BagID})
 	if err != nil {
 		return err
 	}
@@ -70,4 +71,8 @@ func (v *VirtualStorage) PiecesMask(bagId []byte, num uint32) []byte {
 		add++
 	}
 	return make([]byte, num/8+add)
+}
+
+func (v *VirtualStorage) UpdateUploadStats(bagId []byte, val uint64) error {
+	return nil
 }
