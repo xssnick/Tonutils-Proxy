@@ -79,7 +79,7 @@ function App() {
             </div>
             <div className="author-container">
                 <label>Developed by <a onClick={() => {BrowserOpenURL("https://github.com/xssnick/Tonutils-Proxy")}}>TonUtils</a></label>
-                <label className="small-text">v1.4.0</label>
+                <label className="small-text">v1.5.0</label>
             </div>
         </div>
     )
