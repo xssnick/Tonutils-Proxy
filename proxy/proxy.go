@@ -74,6 +74,11 @@ func (p *proxy) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		req.URL.Scheme = req.Header.Get("X-Forwarded-Proto")
 	}
 
+	if req.Method == "CONNECT" {
+		wr.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
 		msg := "unsupported protocal scheme " + req.URL.Scheme
 		http.Error(wr, msg, http.StatusBadRequest)
