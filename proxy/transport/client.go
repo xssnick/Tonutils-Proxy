@@ -188,7 +188,6 @@ func (t *Transport) removeRLDP(rl RLDP, host string) func() {
 }
 
 func (r *rldpInfo) destroyClient(rl RLDP) {
-	println("CLOSE RLDP")
 	rl.Close()
 
 	if r.ActiveClient == rl {
