@@ -21,7 +21,7 @@ func StartProxy(port C.ushort) *C.char {
 		return C.CString("ALREADY_STARTED")
 	}
 
-	p, err := proxy.StartProxy("127.0.0.1:"+fmt.Sprint(uint16(port)), false, nil, "LIB "+GitCommit, false)
+	p, err := proxy.StartProxy("127.0.0.1:"+fmt.Sprint(uint16(port)), 1, nil, "LIB "+GitCommit, false, "", "")
 	if err != nil {
 		log.Println("failed to start proxy:", err.Error())
 		return C.CString("ERR: " + err.Error())
@@ -42,7 +42,7 @@ func StartProxyWithConfig(port C.ushort, configTextJSON *C.char) *C.char {
 		return C.CString("PARSE_CONFIG_ERR: " + err.Error())
 	}
 
-	p, err := proxy.StartProxyWithConfig("127.0.0.1:"+fmt.Sprint(uint16(port)), false, nil, false, "LIB "+GitCommit, &cfg)
+	p, err := proxy.StartProxyWithConfig("127.0.0.1:"+fmt.Sprint(uint16(port)), 1, nil, false, "LIB "+GitCommit, &cfg, "")
 	if err != nil {
 		log.Println("failed to start proxy with config:", err.Error())
 		return C.CString("ERR: " + err.Error())

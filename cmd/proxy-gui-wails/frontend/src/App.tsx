@@ -1,6 +1,6 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import './App.css';
-import {StartProxy, StopProxy} from "../wailsjs/go/main/App";
+import {StartProxy, StopProxy, AddTunnel} from "../wailsjs/go/main/App";
 import {BrowserOpenURL, EventsOn} from "../wailsjs/runtime";
 import Logo from "./assets/logo.svg"
 
@@ -9,6 +9,11 @@ function App() {
     const [proxyState, setProxyState] = useState("stopped");
     const [buttonDisabled, setButtonDisabled] = useState(false);
     const [isStop, setIsStop] = useState(false);
+    const [hasTunnel, setHasTunnel] = useState(false);
+
+    EventsOn("tunnelAdded", function (used: boolean) {
+        setHasTunnel(used);
+    })
 
     EventsOn("statusUpdate", function (typ: string, text: string) {
         switch (typ) {
@@ -62,6 +67,12 @@ function App() {
         return 'state-not-connected';
     }
 
+    async function applyTunnelConfig() {
+        if (!isStop) {
+            await AddTunnel();
+        }
+    }
+
     return (
         <div className={"app "+ (proxyState === 'ready' ? "map-active" : "map-inactive")}>
             <div className="logo-container">
@@ -73,13 +84,15 @@ function App() {
                     <label className="big-text">127.0.0.1:8080</label>
                 </div>
                 <div className="button-container">
-                    <button className={"button "+toButtonState(proxyState)} onClick={action}/>
+                    <button className={"button " + toButtonState(proxyState)} onClick={action}/>
                 </div>
+                <button className={`apply-config-button ${hasTunnel ? 'applied' : `${isStop ? "already-started" : ""}`}`} onClick={applyTunnelConfig}>
+                    {hasTunnel ? "Tunnel Config Applied" : `${isStop ? "Stop to add tunnel" : "Apply Tunnel Config"}`}
+                </button>
                 <label className="big-text status">{resultText}</label>
             </div>
             <div className="author-container">
-                <label>Developed by <a onClick={() => {BrowserOpenURL("https://github.com/xssnick/Tonutils-Proxy")}}>TonUtils</a></label>
-                <label className="small-text">v1.5.0</label>
+                <label className="small-text">v1.6.0</label>
             </div>
         </div>
     )

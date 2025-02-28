@@ -7,15 +7,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/xssnick/tonutils-go/adnl"
 	"github.com/xssnick/tonutils-go/adnl/address"
 	"github.com/xssnick/tonutils-go/adnl/rldp"
-	rldphttp "github.com/xssnick/tonutils-go/adnl/rldp/http"
 	"github.com/xssnick/tonutils-go/tl"
 	"github.com/xssnick/tonutils-go/ton/dns"
 	"github.com/xssnick/tonutils-storage/storage"
 	"io"
-	"log"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -44,25 +43,24 @@ type RLDP interface {
 	SetOnQuery(handler func(transferId []byte, query *rldp.Query) error)
 	SetOnDisconnect(handler func())
 	SendAnswer(ctx context.Context, maxAnswerSize int64, queryId, transferId []byte, answer tl.Serializable) error
+	GetADNL() rldp.ADNL
 }
 
 type ADNL interface {
 	RemoteAddr() string
 	GetID() []byte
 	Query(ctx context.Context, req, result tl.Serializable) error
-	SetDisconnectHandler(handler func(addr string, key ed25519.PublicKey))
 	SetCustomMessageHandler(handler func(msg *adnl.MessageCustom) error)
+	SetDisconnectHandler(handler func(addr string, key ed25519.PublicKey))
+	GetDisconnectHandler() func(addr string, key ed25519.PublicKey)
 	SendCustomMessage(ctx context.Context, req tl.Serializable) error
+	GetCloserCtx() context.Context
 	Close()
 }
 
 type bagInfo struct {
 	torrent    *storage.Torrent
 	downloader storage.TorrentDownloader
-}
-
-var Connector = func(ctx context.Context, addr string, peerKey ed25519.PublicKey, ourKey ed25519.PrivateKey) (ADNL, error) {
-	return adnl.Connect(ctx, addr, peerKey, ourKey)
 }
 
 var newRLDP = func(a ADNL) RLDP {
@@ -89,6 +87,7 @@ type Transport struct {
 	resolver         Resolver
 	storageConnector storage.NetConnector
 	store            *VirtualStorage
+	gate             *adnl.Gateway
 
 	activeSites map[string]*siteInfo
 
@@ -98,8 +97,9 @@ type Transport struct {
 	mx             sync.RWMutex
 }
 
-func NewTransport(dht DHT, resolver Resolver, storeConn storage.NetConnector, store *VirtualStorage) *Transport {
+func NewTransport(gate *adnl.Gateway, dht DHT, resolver Resolver, storeConn storage.NetConnector, store *VirtualStorage) *Transport {
 	t := &Transport{
+		gate:             gate,
 		dht:              dht,
 		resolver:         resolver,
 		storageConnector: storeConn,
@@ -145,7 +145,8 @@ func (t *Transport) cleaner() {
 						t.mx.Unlock()
 						act.downloader.Close()
 						act.torrent.Stop()
-						log.Println("STOPPED UNUSED BAG", hex.EncodeToString(act.torrent.BagID))
+
+						log.Debug().Hex("bag_id", act.torrent.BagID).Msg("stopped unused bag")
 					}
 				}
 				info.mx.Unlock()
@@ -154,8 +155,8 @@ func (t *Transport) cleaner() {
 	}
 }
 
-func (t *Transport) connectRLDP(ctx context.Context, key ed25519.PublicKey, addr, host string) (RLDP, error) {
-	a, err := Connector(ctx, addr, key, nil)
+func (t *Transport) connectRLDP(key ed25519.PublicKey, addr, host string) (RLDP, error) {
+	a, err := t.gate.RegisterClient(addr, key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init adnl for rldp connection %s, err: %w", addr, err)
 	}
@@ -197,7 +198,7 @@ func (r *rldpInfo) destroyClient(rl RLDP) {
 func (t *Transport) getRLDPQueryHandler(r RLDP) func(transferId []byte, query *rldp.Query) error {
 	return func(transferId []byte, query *rldp.Query) error {
 		switch req := query.Data.(type) {
-		case rldphttp.GetNextPayloadPart:
+		case GetNextPayloadPart:
 			t.mx.RLock()
 			stream := t.activeRequests[hex.EncodeToString(req.ID)]
 			t.mx.RUnlock()
@@ -231,7 +232,7 @@ func (t *Transport) getRLDPQueryHandler(r RLDP) func(transferId []byte, query *r
 	}
 }
 
-func handleGetPart(req rldphttp.GetNextPayloadPart, stream *payloadStream) (*rldphttp.PayloadPart, error) {
+func handleGetPart(req GetNextPayloadPart, stream *payloadStream) (*PayloadPart, error) {
 	stream.mx.Lock()
 	defer stream.mx.Unlock()
 
@@ -251,7 +252,7 @@ func handleGetPart(req rldphttp.GetNextPayloadPart, stream *payloadStream) (*rld
 	}
 	stream.nextOffset += n
 
-	return &rldphttp.PayloadPart{
+	return &PayloadPart{
 		Data:    data[:n],
 		Trailer: nil, // TODO: trailer
 		IsLast:  last,
@@ -292,7 +293,7 @@ func (s *siteInfo) prepare(t *Transport, request *http.Request) (err error) {
 		}
 
 		if act.ActiveClient == nil {
-			act.ActiveClient, err = t.connectRLDP(request.Context(), act.ID, act.Addr, host)
+			act.ActiveClient, err = t.connectRLDP(act.ID, act.Addr, host)
 			if err != nil {
 				// resolve again
 				s.Actor = nil
@@ -313,7 +314,9 @@ func (t *Transport) RoundTrip(request *http.Request) (_ *http.Response, err erro
 	t.mx.Lock()
 	site := t.activeSites[host]
 	if site == nil {
-		site = &siteInfo{}
+		site = &siteInfo{
+			LastUsed: time.Now().Unix(),
+		}
 		t.activeSites[host] = site
 	}
 	t.mx.Unlock()
@@ -324,7 +327,7 @@ func (t *Transport) RoundTrip(request *http.Request) (_ *http.Response, err erro
 	tm := time.Now()
 	site.mx.Lock()
 	err = site.prepare(t, request)
-	log.Println("prepare took:", time.Since(tm).String())
+	log.Info().Str("host", host).Dur("took", time.Since(tm)).Msg("prepare took")
 
 	if err != nil {
 		site.mx.Unlock()
@@ -407,7 +410,8 @@ func (t *Transport) doTorrent(bag *bagInfo, request *http.Request, si *siteInfo)
 	}
 	hasRange, from, to, err := t.parseRange(request, fileLastIndex)
 	if err != nil {
-		log.Println("invalid range:", err.Error())
+		log.Error().Err(err).Msg("invalid range")
+
 		return &http.Response{
 			Status:        "Invalid range",
 			StatusCode:    416,
@@ -477,7 +481,9 @@ func (t *Transport) doTorrent(bag *bagInfo, request *http.Request, si *siteInfo)
 			err := t.proxyOrdered(request.Context(), fileInfo, piecesMap, fetch, stream, si, bag.torrent.Info.PieceSize, from, to)
 			if err != nil {
 				_ = stream.Close()
-				log.Println("download ordered err: %w", err)
+				if !errors.Is(err, context.Canceled) {
+					log.Error().Err(err).Msg("download ordered err")
+				}
 				return
 			}
 			stream.Finish()
@@ -494,12 +500,12 @@ func (t *Transport) doRldpHttp(client RLDP, host string, request *http.Request) 
 		return nil, err
 	}
 
-	req := rldphttp.Request{
+	req := Request{
 		ID:      qid,
 		Method:  request.Method,
 		URL:     request.URL.String(),
 		Version: "HTTP/1.1",
-		Headers: []rldphttp.Header{
+		Headers: []Header{
 			{
 				Name:  "Host",
 				Value: host,
@@ -508,7 +514,7 @@ func (t *Transport) doRldpHttp(client RLDP, host string, request *http.Request) 
 	}
 
 	if request.ContentLength > 0 {
-		req.Headers = append(req.Headers, rldphttp.Header{
+		req.Headers = append(req.Headers, Header{
 			Name:  "Content-Length",
 			Value: fmt.Sprint(request.ContentLength),
 		})
@@ -516,7 +522,7 @@ func (t *Transport) doRldpHttp(client RLDP, host string, request *http.Request) 
 
 	for k, v := range request.Header {
 		for _, hdr := range v {
-			req.Headers = append(req.Headers, rldphttp.Header{
+			req.Headers = append(req.Headers, Header{
 				Name:  k,
 				Value: hdr,
 			})
@@ -568,7 +574,7 @@ func (t *Transport) doRldpHttp(client RLDP, host string, request *http.Request) 
 		}()
 	}
 
-	var res rldphttp.Response
+	var res Response
 	err = client.DoQuery(request.Context(), _RLDPMaxAnswerSize, req, &res)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query http over rldp: %w", err)
@@ -610,8 +616,8 @@ func (t *Transport) doRldpHttp(client RLDP, host string, request *http.Request) 
 		go func() {
 			seqno := int32(0)
 			for withPayload {
-				var part rldphttp.PayloadPart
-				err := client.DoQuery(request.Context(), _RLDPMaxAnswerSize*1000, rldphttp.GetNextPayloadPart{
+				var part PayloadPart
+				err := client.DoQuery(request.Context(), _RLDPMaxAnswerSize*1000, GetNextPayloadPart{
 					ID:           qid,
 					Seqno:        seqno,
 					MaxChunkSize: _ChunkSize * 100,
@@ -650,7 +656,7 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 	var id []byte
 	var inStorage bool
 	if strings.HasSuffix(host, ".adnl") {
-		id, err = rldphttp.ParseADNLAddress(host[:len(host)-5])
+		id, err = ParseADNLAddress(host[:len(host)-5])
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse adnl address %s, err: %w", host, err)
 		}
@@ -680,7 +686,7 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 							ch <- nil
 							return
 						}
-						log.Println("domain", host, "resolve err: ", err.Error())
+						log.Error().Err(err).Str("domain", host).Msg("resolve error")
 						continue
 					}
 
@@ -698,16 +704,16 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 				return nil, fmt.Errorf("domain %s resolve err: %w", host, dns.ErrNoSuchRecord)
 			}
 		case <-lookupCtx.Done():
-			stopLookup() // to turn off warning
+			stopLookup()
 			return nil, fmt.Errorf("failed to resolve domain %s in ton dns", host)
 		}
-		log.Println("resolve domain", host, "took:", time.Since(tm).String())
+		log.Info().Str("domain", host).Dur("duration", time.Since(tm)).Msg("resolve domain took")
 
 		id, inStorage = domain.GetSiteRecord()
 	}
 
 	if inStorage {
-		log.Println("SEARCHING FOR BAG ID", hex.EncodeToString(id), "OF", host)
+		log.Info().Str("bag_id", hex.EncodeToString(id)).Str("host", host).Msg("searching for bag id")
 
 		torrent := storage.NewTorrent("", t.store, t.storageConnector)
 		torrent.BagID = id
@@ -717,28 +723,28 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 		if err = torrent.Start(true, false, false); err != nil {
 			return nil, fmt.Errorf("failed to start bag %s, err: %w", host, err)
 		}
-		log.Println("STARTING FOR BAG ID", hex.EncodeToString(id), "OF", host)
+		log.Info().Str("bag_id", hex.EncodeToString(id)).Str("host", host).Msg("starting for bag id")
 
-		downloader, err := t.storageConnector.CreateDownloader(t.globalCtx, torrent, 1, 3)
+		downloader, err := t.storageConnector.CreateDownloader(t.globalCtx, torrent)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create downloader for storage bag of %s, err: %w", host, err)
 		}
 
-		log.Println("BAG FOUND", hex.EncodeToString(id), "OF", host)
+		log.Info().Str("bag_id", hex.EncodeToString(id)).Str("host", host).Msg("bag found")
 		return &bagInfo{
 			torrent:    torrent,
 			downloader: downloader,
 		}, nil
 	}
 
-	log.Println("RESOLVING TON SITE", host, "NODE", hex.EncodeToString(id), "ADDRESS")
+	log.Info().Str("host", host).Str("node", hex.EncodeToString(id)).Msg("resolving ton site address")
 
 	addresses, pubKey, err := t.dht.FindAddresses(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find address of %s (%s) in DHT, err: %w", host, hex.EncodeToString(id), err)
 	}
 
-	log.Println("TON SITE", host, "NODE", hex.EncodeToString(id), "ADDRESS RESOLVED")
+	log.Info().Str("host", host).Str("node", hex.EncodeToString(id)).Msg("server address resolved")
 
 	var addr string
 	var client RLDP
@@ -746,12 +752,12 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 	for _, v := range addresses.Addresses {
 		addr = fmt.Sprintf("%s:%d", v.IP.String(), v.Port)
 
-		log.Println("CONNECTING TO TON SITE", host, "NODE", hex.EncodeToString(id), "USING ADDRESS", addr)
+		log.Info().Str("host", host).Str("node", hex.EncodeToString(id)).Str("address", addr).Msg("connecting to ton site")
 
 		// find working rldp node addr
-		client, err = t.connectRLDP(ctx, pubKey, addr, host)
+		client, err = t.connectRLDP(pubKey, addr, host)
 		if err != nil {
-			log.Println("CONNECTION TO TON SITE", host, "NODE", hex.EncodeToString(id), "USING ADDRESS", addr, "FAILED")
+			log.Error().Err(err).Str("host", host).Str("node", hex.EncodeToString(id)).Str("address", addr).Msg("connection failed")
 
 			triedAddresses = append(triedAddresses, addr)
 			continue
@@ -763,7 +769,7 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 		return nil, fmt.Errorf("failed to connect to rldp servers %s of host %s, err: %w", triedAddresses, host, err)
 	}
 
-	log.Println("TON SITE", host, "NODE", hex.EncodeToString(id), "CONNECTED", addr)
+	log.Info().Str("host", host).Str("node", hex.EncodeToString(id)).Str("address", addr).Msg("connected to server")
 
 	info := &rldpInfo{
 		ActiveClient: client,
