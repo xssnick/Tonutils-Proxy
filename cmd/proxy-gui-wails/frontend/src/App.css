@@ -196,3 +196,34 @@ html {
   line-height: 14px;
   width: 100%;
 }
+
+.apply-config-button {
+  margin-top: 12px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ACACAF;
+  background-color: #2C2C31;
+  border: 1px solid #44444A;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.apply-config-button:hover {
+  background-color: #3A3A40;
+}
+
+.apply-config-button.applied {
+  background-color: #232328;
+  color: #07ACFF;
+  border: 1px solid #07ACFF;
+  cursor: default;
+}
+
+.apply-config-button.already-started {
+  background-color: #232328;
+  color: #595959;
+  border: 1px solid #595959;
+  cursor: default;
+}

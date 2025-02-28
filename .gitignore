@@ -4,3 +4,4 @@ build/lib
 .DS_Store
 .idea
 proxy/window
+*.json
