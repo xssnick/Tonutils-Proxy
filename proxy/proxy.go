@@ -300,7 +300,7 @@ func StartProxyWithConfig(addr string, verbosity int, res chan<- State, blockHtt
 	}
 
 	gateStorage := adnl.NewGatewayWithNetManager(storageAdnlKey, netMgr)
-	if err = gateStorage.StartClient(); err != nil {
+	if err = gateStorage.StartClient(listenThreads); err != nil {
 		return nil, fmt.Errorf("failed to init adnl gateway: %w", err)
 	}
 
@@ -311,7 +311,7 @@ func StartProxyWithConfig(addr string, verbosity int, res chan<- State, blockHtt
 	srv.SetStorage(store)
 
 	gateProxy := adnl.NewGatewayWithNetManager(proxyAdnlKey, netMgr)
-	if err = gateProxy.StartClient(); err != nil {
+	if err = gateProxy.StartClient(listenThreads); err != nil {
 		return nil, fmt.Errorf("failed to init adnl gateway for proxy: %w", err)
 	}
 
