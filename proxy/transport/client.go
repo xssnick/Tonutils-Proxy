@@ -71,8 +71,9 @@ var newRLDP = func(a ADNL) RLDP {
 type siteInfo struct {
 	Actor any
 
-	LastUsed int64
-	mx       sync.RWMutex
+	LastUsed    int64
+	LastSuccess int64
+	mx          sync.RWMutex
 }
 
 type rldpInfo struct {
@@ -271,25 +272,23 @@ func (s *siteInfo) prepare(t *Transport, request *http.Request) (err error) {
 		host = request.URL.Host
 	}
 
-	if s.Actor == nil {
+	if s.Actor == nil || atomic.LoadInt64(&s.LastSuccess)+90 < time.Now().Unix() {
 		s.Actor, err = t.resolve(request.Context(), host)
 		if err != nil {
 			return err
 		}
+		// update success after resolve to not re-resolve too soon
+		atomic.StoreInt64(&s.LastSuccess, time.Now().Unix())
+		atomic.StoreInt64(&s.LastUsed, time.Now().Unix())
 	}
 
 	switch act := s.Actor.(type) {
 	case *bagInfo:
 		atomic.StoreInt64(&s.LastUsed, time.Now().Unix())
 	case *rldpInfo:
-		if atomic.LoadInt64(&s.LastUsed)+30 < time.Now().Unix() {
-			// if last used more than 30 seconds ago,
-			// we have a chance of stuck udp socket,
-			// so we just reinit connection
-			go act.ActiveClient.Close() // close async because of lock
-
-			// set it nil now to reassign
-			act.ActiveClient = nil
+		if act.ActiveClient != nil && atomic.LoadInt64(&s.LastUsed)+30 < time.Now().Unix() {
+			act.ActiveClient.GetADNL().(adnl.Peer).Reinit()
+			atomic.StoreInt64(&s.LastUsed, time.Now().Unix())
 		}
 
 		if act.ActiveClient == nil {
@@ -347,6 +346,7 @@ func (t *Transport) RoundTrip(request *http.Request) (_ *http.Response, err erro
 		if err != nil {
 			return nil, fmt.Errorf("failed to request rldp-http site: %w", err)
 		}
+		atomic.StoreInt64(&site.LastSuccess, time.Now().Unix())
 		return resp, nil
 	}
 
@@ -354,6 +354,7 @@ func (t *Transport) RoundTrip(request *http.Request) (_ *http.Response, err erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to request file from storage: %w", err)
 	}
+	atomic.StoreInt64(&site.LastSuccess, time.Now().Unix())
 	return resp, nil
 }
 

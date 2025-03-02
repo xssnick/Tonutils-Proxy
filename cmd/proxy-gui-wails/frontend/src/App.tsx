@@ -92,7 +92,7 @@ function App() {
                 <label className="big-text status">{resultText}</label>
             </div>
             <div className="author-container">
-                <label className="small-text">v1.6.1</label>
+                <label className="small-text">v1.6.2</label>
             </div>
         </div>
     )
