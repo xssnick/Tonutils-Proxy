@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"github.com/rs/zerolog/log"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -14,15 +15,18 @@ var assets embed.FS
 
 func main() {
 	// Create an instance of the app structure
-	app := NewApp()
+	app, err := NewApp()
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to init app")
+	}
 
-	height := 434
+	height := 444
 	if runtime.GOOS == "windows" {
 		height += 40 // windows cut part of the height, so we extend it
 	}
 
 	// Create application with options
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:         "Tonutils Proxy",
 		Width:         375,
 		Height:        height,

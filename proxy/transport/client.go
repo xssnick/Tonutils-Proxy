@@ -39,10 +39,10 @@ type Resolver interface {
 
 type RLDP interface {
 	Close()
-	DoQuery(ctx context.Context, maxAnswerSize int64, query, result tl.Serializable) error
+	DoQuery(ctx context.Context, maxAnswerSize uint64, query, result tl.Serializable) error
 	SetOnQuery(handler func(transferId []byte, query *rldp.Query) error)
 	SetOnDisconnect(handler func())
-	SendAnswer(ctx context.Context, maxAnswerSize int64, queryId, transferId []byte, answer tl.Serializable) error
+	SendAnswer(ctx context.Context, maxAnswerSize uint64, timeoutAt uint32, queryId, transferId []byte, answer tl.Serializable) error
 	GetADNL() rldp.ADNL
 }
 
@@ -64,8 +64,7 @@ type bagInfo struct {
 }
 
 var newRLDP = func(a ADNL) RLDP {
-	return rldp.NewClient(a)
-	// return rldp.NewClientV2(a) // for rldp2, but it is too early now
+	return rldp.NewClientV2(a)
 }
 
 type siteInfo struct {
@@ -214,7 +213,7 @@ func (t *Transport) getRLDPQueryHandler(r RLDP) func(transferId []byte, query *r
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-			err = r.SendAnswer(ctx, query.MaxAnswerSize, query.ID, transferId, part)
+			err = r.SendAnswer(ctx, query.MaxAnswerSize, query.Timeout, query.ID, transferId, part)
 			cancel()
 			if err != nil {
 				return fmt.Errorf("failed to send answer: %w", err)
