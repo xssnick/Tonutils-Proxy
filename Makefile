@@ -18,7 +18,7 @@ clang_path=$(shell xcrun --sdk ${sdk} --find clang)
 goRoot=$(shell go env GOROOT)
 
 build-ios-lib:
-	SDK=$(sdk) CGO_ENABLED=1 CGO_CFLAGS="-fembed-bitcode" GOOS=ios GOARCH=$(arch) CC=$(goRoot)/misc/ios/clangwrap.sh go build -buildmode c-archive -trimpath -gcflags=all="-l" -ldflags="-w -s -X main.GitCommit=$(ver)" -o build/lib/ios/tonutils-proxy.a cmd/lib/main.go
+	SDK=$(sdk) CGO_ENABLED=1 CGO_CFLAGS="-fembed-bitcode" GOOS=ios GOARCH=$(arch) CC="$(clang_path) -isysroot $(sdk_path) -arch arm64 -miphoneos-version-min=11.0" go build -buildmode c-archive -trimpath -gcflags=all="-l" -ldflags="-w -s -X main.GitCommit=$(ver)" -o build/lib/ios/tonutils-proxy.a cmd/lib/main.go
 
 # example: /home/user/android-ndk-r25c
 ndk:=${NDK_PATH}
