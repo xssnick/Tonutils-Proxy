@@ -4,9 +4,9 @@ go 1.23.3
 
 require (
 	github.com/rs/zerolog v1.34.0
-	github.com/ton-blockchain/adnl-tunnel v0.0.0-20250429140954-53bcf401e49c
+	github.com/ton-blockchain/adnl-tunnel v0.0.0-20250429164353-050cce94afa7
 	github.com/wailsapp/wails/v2 v2.10.1
-	github.com/xssnick/ton-payment-network v0.0.0-20250429140811-04d935a6e973
+	github.com/xssnick/ton-payment-network v0.0.0-20250429164316-0667c269d7ad
 	github.com/xssnick/tonutils-go v1.12.1-0.20250425082124-8d5183ff82da
 	github.com/xssnick/tonutils-proxy v1.0.0
 )
