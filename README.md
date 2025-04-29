@@ -6,7 +6,7 @@
 
 This is a user-friendly TON Proxy implementation. It works on any platform with UDP support. It can be used with any internet connection, and any type of ip.  
 
-At this moment client multi-threaded proxy is implemented, reverse-proxy for web3 sites hosting coming soon!
+If you want to run your own web3 sites, use [reverse-proxy](https://github.com/tonutils/reverse-proxy).
 
 [Join our Telegram group](https://t.me/tonrh) to stay updated! More cool products on this basis are planned.
 
@@ -30,8 +30,8 @@ To compile for IOS, XCode tools and Mac are required, for Android you need NDK t
 Or you could use precompiled libs.
 
 #### Precompilled
-* [Download iOS Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.5.0/ios-lib.zip)
-* [Download Android Library](https://github.com/xssnick/Tonutils-Proxy/releases/download/v1.5.0/android-lib.zip)
+* [Download iOS Library](https://github.com/xssnick/Tonutils-Proxy/releases/latest/download/ios-lib.zip)
+* [Download Android Library](https://github.com/xssnick/Tonutils-Proxy/releases/latest/download/android-lib.zip)
 
 ##### Community projects
 * [Swift wrapper](https://github.com/0xstragner/ton-proxy-swift) for iOS library by [@0xstragner](https://github.com/0xstragner)
