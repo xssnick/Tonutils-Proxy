@@ -41,6 +41,7 @@ func LoadConfig(dir string) (*Config, error) {
 		if err != nil {
 			return nil, err
 		}
+		cfg.TunnelConfig.Payments.DBPath = dir + "/payments-db"
 
 		if err = cfg.SaveConfig(dir); err != nil {
 			return nil, err
@@ -76,6 +77,7 @@ func LoadConfig(dir string) (*Config, error) {
 		if err != nil {
 			return nil, err
 		}
+		cfg.TunnelConfig.Payments.DBPath = dir + "/payments-db"
 
 		err = cfg.SaveConfig(dir)
 		if err != nil {
