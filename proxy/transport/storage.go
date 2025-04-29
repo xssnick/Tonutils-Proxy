@@ -10,7 +10,16 @@ import (
 
 type VirtualStorage struct {
 	torrents map[string]*storage.Torrent
-	mx       sync.Mutex
+	mx       sync.RWMutex
+}
+
+func (v *VirtualStorage) VerifyOnStartup() bool {
+	return false
+}
+
+func (v *VirtualStorage) GetForcedPieceSize() uint32 {
+	//TODO implement me
+	return 0
 }
 
 func NewVirtualStorage() *VirtualStorage {
@@ -22,12 +31,20 @@ func (v *VirtualStorage) GetFS() storage.FS {
 }
 
 func (v *VirtualStorage) GetAll() []*storage.Torrent {
-	panic("virtual")
+	v.mx.RLock()
+	defer v.mx.RUnlock()
+
+	var res []*storage.Torrent
+	for _, t := range v.torrents {
+		res = append(res, t)
+	}
+
+	return res
 }
 
 func (v *VirtualStorage) GetTorrentByOverlay(overlay []byte) *storage.Torrent {
-	v.mx.Lock()
-	defer v.mx.Unlock()
+	v.mx.RLock()
+	defer v.mx.RUnlock()
 
 	return v.torrents[string(overlay)]
 }

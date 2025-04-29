@@ -12,8 +12,10 @@ import (
 	"github.com/ton-blockchain/adnl-tunnel/tunnel"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/adnl"
+	adnlAddress "github.com/xssnick/tonutils-go/adnl/address"
 	"github.com/xssnick/tonutils-go/adnl/dht"
 	"github.com/xssnick/tonutils-go/liteclient"
+	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton"
 	"github.com/xssnick/tonutils-go/ton/dns"
 	"github.com/xssnick/tonutils-proxy/proxy/transport"
@@ -147,17 +149,7 @@ type State struct {
 	Stopped bool
 }
 
-type Proxy struct {
-	httpServer  *http.Server
-	dht         *dht.Client
-	tr          *transport.Transport
-	st          *storage.Server
-	gateProxy   *adnl.Gateway
-	gateStorage *adnl.Gateway
-	connPool    *liteclient.ConnectionPool
-}
-
-func StartProxy(addr string, verbosity int, res chan<- State, versionAndDevice string, blockHttp bool, netConfigPath, tunnelConfigPath string) (*Proxy, error) {
+func RunProxy(closerCtx context.Context, addr string, adnlKey ed25519.PrivateKey, res chan<- State, versionAndDevice string, blockHttp bool, netConfigPath string, tunCfg *tunnelConfig.ClientConfig, customTunNetCfg *liteclient.GlobalConfig) error {
 	if res != nil {
 		res <- State{
 			Type:  "loading",
@@ -171,80 +163,189 @@ func StartProxy(addr string, verbosity int, res chan<- State, versionAndDevice s
 		log.Info().Msg("Fetching TON network config from disk...")
 		lsCfg, err = liteclient.GetConfigFromFile(netConfigPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse ton config: %w", err)
+			return fmt.Errorf("failed to parse ton config: %w", err)
 		}
 	} else {
 		log.Info().Msg("Fetching TON network config...")
-		lsCfg, err = liteclient.GetConfigFromUrl(context.Background(), "https://ton.org/global.config.json")
+		lsCfg, err = liteclient.GetConfigFromUrl(context.Background(), "https://ton-blockchain.github.io/global.config.json")
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to download ton config; taking it from static cache")
 			lsCfg = &liteclient.GlobalConfig{}
 			if err = json.NewDecoder(bytes.NewBufferString(config.FallbackNetworkConfig)).Decode(lsCfg); err != nil {
-				return nil, fmt.Errorf("failed to parse fallback ton config: %w", err)
+				return fmt.Errorf("failed to parse fallback ton config: %w", err)
 			}
 		}
 	}
 
-	return StartProxyWithConfig(addr, verbosity, res, blockHttp, versionAndDevice, lsCfg, tunnelConfigPath)
+	return RunProxyWithConfig(closerCtx, addr, adnlKey, res, blockHttp, versionAndDevice, lsCfg, tunCfg, customTunNetCfg)
 }
 
-var ErrGenerated = errors.New("generated tunnel config; fill it with the desired route and restart")
+var OnTunnel = func(addr string) {}
+var OnPaidUpdate = func(paid tlb.Coins) {}
 
-func StartProxyWithConfig(addr string, verbosity int, res chan<- State, blockHttp bool, versionAndDevice string, lsCfg *liteclient.GlobalConfig, tunnelConfigPath string) (*Proxy, error) {
+var OnAskAccept = func(to, from []*tunnel.SectionInfo) bool {
+	return true
+}
+var OnAskReroute = func() bool { return false }
+
+var OnTunnelStopped = func() {}
+
+func RunProxyWithConfig(closerCtx context.Context, addr string, adnlKey ed25519.PrivateKey, res chan<- State, blockHttp bool, versionAndDevice string, lsCfg *liteclient.GlobalConfig, tunCfg *tunnelConfig.ClientConfig, customTunNetCfg *liteclient.GlobalConfig) error {
 	report := func(s State) {
 		if res != nil {
 			res <- s
 		}
 	}
 
+	var err error
+	if len(adnlKey) == 0 {
+		_, adnlKey, err = ed25519.GenerateKey(nil)
+		if err != nil {
+			return fmt.Errorf("failed to generate ed25519 adnl key: %w", err)
+		}
+	}
+
+	ctx, closer := context.WithCancel(closerCtx)
+	defer closer()
+
+	report(State{
+		Type:  "loading",
+		State: "Initializing DNS...",
+	})
+
+	log.Info().Msg("Initializing DNS resolver...")
+	connPool, dnsClient, err := initDNSResolver(lsCfg)
+	if err != nil {
+		return fmt.Errorf("failed to init TON DNS resolver: %w", err)
+	}
+	defer connPool.Stop()
+
+	var gate *adnl.Gateway
 	var netMgr adnl.NetManager
-	if tunnelConfigPath != "" {
-		data, err := os.ReadFile(tunnelConfigPath)
-		if err == nil && len(data) == 0 {
-			err = os.Remove(tunnelConfigPath)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to remove empty tunnel config")
-				return nil, err
-			}
-			// to replace empty
-			err = os.ErrNotExist
+	if tunCfg != nil && tunCfg.NodesPoolConfigPath != "" {
+		report(State{
+			Type:  "loading",
+			State: "Preparing ADNL tunnel...",
+		})
+
+		data, err := os.ReadFile(tunCfg.NodesPoolConfigPath)
+		if err != nil {
+			return fmt.Errorf("failed to load tunnel nodes pool config: %w", err)
 		}
 
-		if err != nil {
-			if os.IsNotExist(err) {
-				if _, err = tunnelConfig.GenerateClientConfig(tunnelConfigPath); err != nil {
-					log.Error().Err(err).Msg("Failed to generate tunnel config")
-					return nil, err
+		var tunNodesCfg tunnelConfig.SharedConfig
+		if err = json.Unmarshal(data, &tunNodesCfg); err != nil {
+			return fmt.Errorf("failed to parse tunnel nodes pool config: %w", err)
+		}
+
+		if customTunNetCfg == nil {
+			customTunNetCfg = lsCfg
+		}
+
+		tunnel.ChannelPacketsToPrepay = 30000
+		tunnel.ChannelCapacityForNumPayments = 50
+
+		tunnel.AskReroute = OnAskReroute
+		tunnel.Acceptor = OnAskAccept
+		events := make(chan any, 1)
+		go tunnel.RunTunnel(ctx, tunCfg, &tunNodesCfg, customTunNetCfg, log.Logger, events)
+
+		initUpd := make(chan any, 1)
+		inited := false
+		go func() {
+			atm := &tunnel.AtomicSwitchableRegularTunnel{}
+			for event := range events {
+				switch e := event.(type) {
+				case tunnel.StoppedEvent:
+					OnTunnelStopped()
+					return
+				case tunnel.MsgEvent:
+					if !inited {
+						report(State{
+							Type:  "loading",
+							State: e.Msg,
+						})
+					}
+				case tunnel.UpdatedEvent:
+					log.Info().Msg("tunnel updated")
+
+					e.Tunnel.SetOutAddressChangedHandler(func(addr *net.UDPAddr) {
+						gate.SetAddressList([]*adnlAddress.UDP{
+							{
+								IP:   addr.IP,
+								Port: int32(addr.Port),
+							},
+						})
+						OnTunnel(addr.String())
+					})
+					OnTunnel(fmt.Sprintf("%s:%d", e.ExtIP.String(), e.ExtPort))
+
+					go func() {
+						for {
+							select {
+							case <-e.Tunnel.AliveCtx().Done():
+								return
+							case <-time.After(5 * time.Second):
+								OnPaidUpdate(e.Tunnel.CalcPaidAmount()["TON"])
+							}
+						}
+					}()
+
+					atm.SwitchTo(e.Tunnel)
+					if !inited {
+						inited = true
+						netMgr = adnl.NewMultiNetReader(atm)
+						gate = adnl.NewGatewayWithNetManager(adnlKey, netMgr)
+
+						select {
+						case initUpd <- e:
+						default:
+						}
+					} else {
+						gate.SetAddressList([]*adnlAddress.UDP{
+							{
+								IP:   e.ExtIP,
+								Port: int32(e.ExtPort),
+							},
+						})
+
+						log.Info().Msg("connection switched to new tunnel")
+					}
+				case tunnel.ConfigurationErrorEvent:
+					report(State{
+						Type:  "loading",
+						State: "Tunnel configuration error, will retry...",
+					})
+					log.Err(e.Err).Msg("tunnel configuration error, will retry...")
+				case error:
+					select {
+					case initUpd <- e:
+					default:
+					}
 				}
-				log.Info().Msg("Generated tunnel config; fill it with the desired route and restart")
-				return nil, ErrGenerated
 			}
-			log.Error().Err(err).Msg("Failed to load tunnel config")
-			return nil, err
-		}
+		}()
 
-		var tunCfg tunnelConfig.ClientConfig
-		if err = json.Unmarshal(data, &tunCfg); err != nil {
-			log.Error().Err(err).Msg("Failed to parse tunnel config")
-			return nil, err
+		switch x := (<-initUpd).(type) {
+		case tunnel.UpdatedEvent:
+			log.Info().
+				Str("ip", x.ExtIP.String()).
+				Uint16("port", x.ExtPort).
+				Msg("using tunnel")
+		case error:
+			return fmt.Errorf("tunnel preparation failed: %w", x)
 		}
-
-		tun, port, ip, err := tunnel.PrepareTunnel(&tunCfg, lsCfg)
-		if err != nil {
-			log.Error().Err(err).Msg("Tunnel preparation failed")
-			return nil, err
-		}
-		netMgr = adnl.NewMultiNetReader(tun)
-
-		log.Info().Str("ip", ip.String()).Uint16("port", port).Msg("Using tunnel")
 	} else {
 		dl, err := adnl.DefaultListener(":")
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create default listener")
-			return nil, err
+			return err
 		}
 		netMgr = adnl.NewMultiNetReader(dl)
+		gate = adnl.NewGatewayWithNetManager(adnlKey, netMgr)
 	}
+	defer gate.Close()
+	defer netMgr.Close()
 
 	listenThreads := runtime.NumCPU()
 	if listenThreads > 32 {
@@ -256,53 +357,45 @@ func StartProxyWithConfig(addr string, verbosity int, res chan<- State, blockHtt
 		State: "Initializing DHT...",
 	})
 
-	log.Info().Msg("Initialising DHT client...")
+	log.Info().Msg("Initializing DHT client...")
 	_, dhtAdnlKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate ed25519 dht adnl key: %w", err)
+		return fmt.Errorf("failed to generate ed25519 dht adnl key: %w", err)
 	}
 
 	gateway := adnl.NewGatewayWithNetManager(dhtAdnlKey, netMgr)
 	err = gateway.StartClient()
 	if err != nil {
-		return nil, fmt.Errorf("failed to start adnl gateway: %w", err)
+		return fmt.Errorf("failed to start adnl gateway: %w", err)
 	}
+	defer gateway.Close()
 
 	dhtClient, err := dht.NewClientFromConfig(gateway, lsCfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to init DHT client: %w", err)
+		return fmt.Errorf("failed to init DHT client: %w", err)
 	}
-
-	report(State{
-		Type:  "loading",
-		State: "Initializing DNS...",
-	})
-
-	log.Info().Msg("Initialising DNS resolver...")
-	connPool, dnsClient, err := initDNSResolver(lsCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init TON DNS resolver: %w", err)
-	}
+	defer dhtClient.Close()
 
 	report(State{
 		Type:  "loading",
 		State: "Initializing RLDP...",
 	})
 
-	log.Info().Msg("Initialising RLDP transport layer...")
+	log.Info().Msg("Initializing RLDP transport layer...")
 	_, storageAdnlKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate ed25519 storage adnl key: %w", err)
+		return fmt.Errorf("failed to generate ed25519 storage adnl key: %w", err)
 	}
 	_, proxyAdnlKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate ed25519 proxy adnl key: %w", err)
+		return fmt.Errorf("failed to generate ed25519 proxy adnl key: %w", err)
 	}
 
 	gateStorage := adnl.NewGatewayWithNetManager(storageAdnlKey, netMgr)
 	if err = gateStorage.StartClient(listenThreads); err != nil {
-		return nil, fmt.Errorf("failed to init adnl gateway: %w", err)
+		return fmt.Errorf("failed to init adnl gateway: %w", err)
 	}
+	defer gateStorage.Close()
 
 	srv := storage.NewServer(dhtClient, gateStorage, storageAdnlKey, false)
 	conn := storage.NewConnector(srv)
@@ -310,66 +403,70 @@ func StartProxyWithConfig(addr string, verbosity int, res chan<- State, blockHtt
 	store := transport.NewVirtualStorage()
 	srv.SetStorage(store)
 
+	defer srv.Stop()
+
 	gateProxy := adnl.NewGatewayWithNetManager(proxyAdnlKey, netMgr)
 	if err = gateProxy.StartClient(listenThreads); err != nil {
-		return nil, fmt.Errorf("failed to init adnl gateway for proxy: %w", err)
+		return fmt.Errorf("failed to init adnl gateway for proxy: %w", err)
 	}
+	defer gateProxy.Close()
+
+	report(State{
+		Type:  "loading",
+		State: "Starting HTTP server...",
+	})
 
 	t := transport.NewTransport(gateProxy, dhtClient, dnsClient, conn, store)
 	client = &http.Client{
 		Transport: t,
 	}
-
-	report(State{
-		Type:  "ready",
-		State: "Ready",
-	})
+	defer t.Stop()
 
 	log.Info().Str("address", addr).Msg("Starting proxy server")
 
 	server := http.Server{Addr: addr, Handler: &proxy{blockHttp: blockHttp, version: versionAndDevice}}
 
 	go func() {
-		if err = server.ListenAndServe(); err != nil {
-			if errors.Is(err, http.ErrServerClosed) {
-				return
-			}
-
-			log.Error().Err(err).Msg("Failed to init proxy server")
-
-			text := "Failed, check logs"
-			if strings.Contains(err.Error(), "address already in use") {
-				text = "Port is already in use"
-			}
-
-			report(State{
-				Type:    "error",
-				State:   text,
-				Stopped: true,
-			})
-		}
+		<-ctx.Done()
+		server.Shutdown(ctx)
 	}()
 
-	return &Proxy{
-		httpServer:  &server,
-		dht:         dhtClient,
-		tr:          t,
-		st:          srv,
-		gateStorage: gateStorage,
-		gateProxy:   gateProxy,
-		connPool:    connPool,
-	}, nil
-}
+	failed := false
+	go func() {
+		// wait for server start
+		time.Sleep(1 * time.Second)
+		if failed {
+			return
+		}
 
-func (p *Proxy) Stop() {
-	p.httpServer.Close()
+		report(State{
+			Type:  "ready",
+			State: "Ready",
+		})
+	}()
 
-	p.connPool.Stop()
-	p.st.Stop()
-	p.dht.Close()
-	p.gateProxy.Close()
-	p.gateStorage.Close()
-	p.tr.Stop()
+	err = server.ListenAndServe()
+	if errors.Is(err, http.ErrServerClosed) {
+		err = nil
+	}
+
+	if err != nil {
+		failed = true
+		log.Error().Err(err).Msg("Failed to init proxy server")
+
+		text := "Failed, check logs"
+		if strings.Contains(err.Error(), "address already in use") {
+			text = "Port is already in use"
+		}
+
+		report(State{
+			Type:    "error",
+			State:   text,
+			Stopped: true,
+		})
+	}
+
+	return err
 }
 
 func initDNSResolver(cfg *liteclient.GlobalConfig) (*liteclient.ConnectionPool, *dns.Client, error) {
@@ -387,7 +484,7 @@ func initDNSResolver(cfg *liteclient.GlobalConfig) (*liteclient.ConnectionPool, 
 	var root *address.Address
 	for i := 0; i < 5; i++ { // retry to not get liteserver not found block err
 		// get root dns address from network config
-		root, err = dns.RootContractAddr(api)
+		root, err = dns.GetRootContractAddr(context.Background(), api)
 		if err != nil {
 			time.Sleep(500 * time.Millisecond)
 			continue

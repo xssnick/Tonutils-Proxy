@@ -6,6 +6,34 @@ export function AddTunnel() {
   return window['go']['main']['App']['AddTunnel']();
 }
 
+export function DummySec() {
+  return window['go']['main']['App']['DummySec']();
+}
+
+export function GetConfig() {
+  return window['go']['main']['App']['GetConfig']();
+}
+
+export function GetPaymentNetworkWalletAddr() {
+  return window['go']['main']['App']['GetPaymentNetworkWalletAddr']();
+}
+
+export function GetProxyAddr() {
+  return window['go']['main']['App']['GetProxyAddr']();
+}
+
+export function GetTunnelEnabled() {
+  return window['go']['main']['App']['GetTunnelEnabled']();
+}
+
+export function SaveTunnelConfig(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SaveTunnelConfig'](arg1, arg2, arg3);
+}
+
+export function ShowWarnMsg(arg1) {
+  return window['go']['main']['App']['ShowWarnMsg'](arg1);
+}
+
 export function StartProxy() {
   return window['go']['main']['App']['StartProxy']();
 }
