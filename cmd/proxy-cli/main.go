@@ -12,7 +12,7 @@ import (
 	"os/signal"
 )
 
-var GitCommit string
+var GitCommit = "dev"
 
 func main() {
 	var addr = flag.String("addr", "127.0.0.1:8080", "The addr of the proxy.")

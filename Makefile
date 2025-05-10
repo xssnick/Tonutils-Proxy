@@ -1,4 +1,4 @@
-ver := $(shell git log -1 --pretty=format:%h)
+ver := $(shell git describe --tags --always --dirty)
 
 build-all-cli:
 	mkdir -p build/cli

@@ -471,7 +471,7 @@ func (t *Transport) doTorrent(bag *bagInfo, request *http.Request, si *siteInfo)
 	httpResp.Header.Set("Content-Type", typ)
 
 	if len(pieces) > 0 {
-		fetch := storage.NewPreFetcher(request.Context(), bag.torrent, bag.downloader, func(event storage.Event) {}, 0, 8, 50, pieces)
+		fetch := storage.NewPreFetcher(request.Context(), bag.torrent, bag.downloader, func(event storage.Event) {}, 64, pieces)
 		stream := newDataStreamer()
 		httpResp.Body = stream
 
@@ -742,6 +742,10 @@ func (t *Transport) resolve(ctx context.Context, host string) (_ any, err error)
 	addresses, pubKey, err := t.dht.FindAddresses(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find address of %s (%s) in DHT, err: %w", host, hex.EncodeToString(id), err)
+	}
+
+	if len(addresses.Addresses) == 0 {
+		return nil, fmt.Errorf("failed to find address of %s (%s) in DHT,no addresses in record", host, hex.EncodeToString(id))
 	}
 
 	log.Info().Str("host", host).Str("node", hex.EncodeToString(id)).Msg("server address resolved")

@@ -4,10 +4,10 @@ go 1.23.3
 
 require (
 	github.com/rs/zerolog v1.34.0
-	github.com/ton-blockchain/adnl-tunnel v0.0.0-20250429164353-050cce94afa7
+	github.com/ton-blockchain/adnl-tunnel v0.0.0-20250509194852-232a9c53bd31
 	github.com/wailsapp/wails/v2 v2.10.1
-	github.com/xssnick/ton-payment-network v0.0.0-20250429164316-0667c269d7ad
-	github.com/xssnick/tonutils-go v1.12.1-0.20250425082124-8d5183ff82da
+	github.com/xssnick/ton-payment-network v0.1.2-0.20250509194518-ac5c48f2446e
+	github.com/xssnick/tonutils-go v1.12.1-0.20250508133817-83128a4c7520
 	github.com/xssnick/tonutils-proxy v1.0.0
 )
 
@@ -56,12 +56,12 @@ require (
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/xssnick/raptorq v1.0.0 // indirect
-	github.com/xssnick/tonutils-storage v0.8.5 // indirect
+	github.com/xssnick/tonutils-storage v1.0.2-0.20250510064712-d38675b95127 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/term v0.31.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/term v0.32.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 )
 

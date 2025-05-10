@@ -397,7 +397,7 @@ func RunProxyWithConfig(closerCtx context.Context, addr string, adnlKey ed25519.
 	}
 	defer gateStorage.Close()
 
-	srv := storage.NewServer(dhtClient, gateStorage, storageAdnlKey, false)
+	srv := storage.NewServer(dhtClient, gateStorage, storageAdnlKey, false, 1)
 	conn := storage.NewConnector(srv)
 
 	store := transport.NewVirtualStorage()
