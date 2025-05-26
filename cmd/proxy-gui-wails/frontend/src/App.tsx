@@ -153,7 +153,7 @@ function App() {
                 <label className={"big-text "+(paidTunnel && hasTunnel ? "status-upper" : "status")}>{resultText}</label>
             </div>
             <div className="author-container">
-                <label className="small-text">v1.7.0</label>
+                <label className="small-text">v1.7.2</label>
             </div>
 
             {isTunnelModalOpen && (
