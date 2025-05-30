@@ -305,7 +305,6 @@ a {
   text-align: center;
 }
 
-/* Контрол узлов */
 .nodes-control {
   display: flex;
   align-items: center;
@@ -315,13 +314,13 @@ a {
 }
 
 .nodes-button {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   background-color: #44444a;
   color: #fff;
   border: none;
   border-radius: 50%;
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.1s ease;
 }
@@ -344,7 +343,6 @@ a {
   text-align: center;
 }
 
-/* Чекбоксы: центрирование */
 .checkbox-container {
   display: flex;
   align-items: center;
@@ -364,7 +362,6 @@ a {
   width: 98%;
 }
 
-/* Поле ввода адреса */
 .ton-address-input {
   width: 100%;
   padding: 8px 8px;
@@ -382,7 +379,6 @@ a {
   box-shadow: 0 0 0 3px rgba(7, 172, 255, 0.3);
 }
 
-/* Важная заметка */
 .important-note {
   padding-top: 10px;
   font-size: 12px;
@@ -390,7 +386,6 @@ a {
   text-align: center;
 }
 
-/* Действия (кнопки) */
 .modal-actions {
   display: flex;
   justify-content: center;
@@ -432,7 +427,6 @@ a {
   background-color: #55555d;
 }
 
-/* Горизонтальный маршрут узлов */
 .nodes-route-horizontal {
   display: flex;
   flex-wrap: wrap;

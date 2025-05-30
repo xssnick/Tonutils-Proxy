@@ -67,11 +67,7 @@ func NewApp() (*App, error) {
 		tunnelGracefulStop:    tunnelGracefulStop,
 	}
 
-	proxy.OnAskAccept = func(to, from []*tunnel.SectionInfo) bool {
-		if a.skipTunnel {
-			return false
-		}
-
+	proxy.OnAskAccept = func(to, from []*tunnel.SectionInfo) int {
 		var priceIn, priceOut = big.NewInt(0), big.NewInt(0)
 		var sect []SectionInfo
 		for i, n := range append(to, from...) {
@@ -83,7 +79,7 @@ func NewApp() (*App, error) {
 			if n.PaymentInfo != nil {
 				if n.PaymentInfo.ExtraCurrencyID != 0 || n.PaymentInfo.JettonMaster != nil {
 					a.ShowWarnMsg("Route has node with payment in currency other than TON, it is not yet supported in Torrent, rerouting")
-					return false
+					return tunnel.AcceptorDecisionCancel
 				}
 
 				// consider 1 packet = 512 bytes, actually more, but this is avg payload
@@ -117,20 +113,33 @@ func NewApp() (*App, error) {
 
 		runtime.EventsEmit(a.ctx, "tunnel_check", sect, tlb.FromNanoTON(priceIn).String(), tlb.FromNanoTON(priceOut).String())
 
-		ch := make(chan bool, 1)
+		ch := make(chan int, 1)
 		runtime.EventsOn(a.ctx, "tunnel_check_result", func(optionalData ...interface{}) {
 			runtime.EventsOff(a.ctx, "tunnel_check_result")
 			if len(optionalData) == 0 {
 				// cancel tunnel, start without it
 				a.skipTunnel = true
-				ch <- false
+				ch <- tunnel.AcceptorDecisionCancel
 				return
 			}
 
-			ch <- optionalData[0].(bool)
+			if optionalData[0].(bool) {
+				ch <- tunnel.AcceptorDecisionAccept
+			} else {
+				ch <- tunnel.AcceptorDecisionReject
+				if len(optionalData) > 1 {
+					a.cfg.TunnelConfig.TunnelSectionsNum = uint(optionalData[1].(float64))
+					a.SaveTunnelConfig(a.cfg.TunnelConfig.TunnelSectionsNum, true, a.cfg.TunnelConfig.NodesPoolConfigPath)
+				}
+			}
 		})
 
-		return <-ch
+		select {
+		case <-a.proxyStopCtx.Done():
+			return tunnel.AcceptorDecisionCancel
+		case v := <-ch:
+			return v
+		}
 	}
 
 	proxy.OnAskReroute = func() bool {
@@ -141,7 +150,13 @@ func NewApp() (*App, error) {
 			runtime.EventsOff(a.ctx, "tunnel_reinit_ask_result")
 			ch <- optionalData[0].(bool)
 		})
-		return <-ch
+
+		select {
+		case <-a.proxyStopCtx.Done():
+			return false
+		case v := <-ch:
+			return v
+		}
 	}
 
 	proxy.OnPaidUpdate = func(paid tlb.Coins) {
@@ -273,48 +288,81 @@ func (a *App) AddTunnel() {
 	})
 	if err != nil {
 		println(err.Error())
-	} else {
-		if path != "" {
-			data, err := os.ReadFile(path)
-			if err != nil {
-				_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-					Type:          runtime.ErrorDialog,
-					Title:         "Failed to read tunnel config",
-					Message:       err.Error(),
-					DefaultButton: "Ok",
-				})
-				return
-			}
+	}
 
-			if len(data) > 0 {
-				var cfg config.SharedConfig
-				if err = json.Unmarshal(data, &cfg); err != nil {
-					_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-						Type:          runtime.ErrorDialog,
-						Title:         "Failed to parse tunnel config",
-						Message:       err.Error(),
-						DefaultButton: "Ok",
-					})
-					return
-				}
-
-				if len(cfg.NodesPool) == 0 {
-					_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-						Type:    runtime.ErrorDialog,
-						Title:   "Failed to parse tunnel nodes config",
-						Message: "Invalid format or no nodes in config",
-					})
-					return
-				}
-
-				runtime.EventsEmit(a.ctx, "tunnel_pool_added", path, len(cfg.NodesPool))
-				return
-			}
+	if path != "" {
+		res := a.parseTunnelConfig(a.cfg.TunnelConfig.NodesPoolConfigPath)
+		if res != nil {
+			a.SaveTunnelConfig(a.cfg.TunnelConfig.TunnelSectionsNum, true, path)
+			runtime.EventsEmit(a.ctx, "tunnel_pool_added", path, res.Max)
+			return
 		}
 	}
 
-	a.SaveTunnelConfig(a.cfg.TunnelConfig.TunnelSectionsNum, a.cfg.TunnelConfig.PaymentsEnabled, "")
+	a.SaveTunnelConfig(a.cfg.TunnelConfig.TunnelSectionsNum, true, "")
 	runtime.EventsEmit(a.ctx, "tunnel_pool_added", "", 0)
+	return
+}
+
+func (a *App) GetMaxTunnelNodes() int {
+	res := a.parseTunnelConfig(a.cfg.TunnelConfig.NodesPoolConfigPath)
+	if res == nil {
+		return 0
+	}
+
+	return res.Max
+}
+
+type TunnelConfigInfo struct {
+	Max     int
+	MaxFree int
+	Path    string
+}
+
+func (a *App) parseTunnelConfig(path string) *TunnelConfigInfo {
+	if path != "" {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+				Type:          runtime.ErrorDialog,
+				Title:         "Failed to read tunnel config",
+				Message:       err.Error(),
+				DefaultButton: "Ok",
+			})
+			return nil
+		}
+
+		var sharedCfg config.SharedConfig
+		if err = json.Unmarshal(data, &sharedCfg); err != nil {
+			_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+				Type:          runtime.ErrorDialog,
+				Title:         "Failed to parse tunnel config",
+				Message:       err.Error(),
+				DefaultButton: "Ok",
+			})
+			return nil
+		}
+
+		if len(sharedCfg.NodesPool) == 0 {
+			_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+				Type:    runtime.ErrorDialog,
+				Title:   "Failed to parse nodes pool config",
+				Message: "Invalid nodes pool config format",
+			})
+			return nil
+		}
+
+		maxFree := 0
+		for _, node := range sharedCfg.NodesPool {
+			if node.Payment == nil {
+				maxFree++
+			}
+		}
+
+		return &TunnelConfigInfo{Path: path, Max: len(sharedCfg.NodesPool), MaxFree: maxFree}
+	}
+
+	return &TunnelConfigInfo{Path: ""}
 }
 
 func (a *App) StartProxy() {

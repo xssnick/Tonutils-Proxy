@@ -14,6 +14,10 @@ export function GetConfig() {
   return window['go']['main']['App']['GetConfig']();
 }
 
+export function GetMaxTunnelNodes() {
+  return window['go']['main']['App']['GetMaxTunnelNodes']();
+}
+
 export function GetPaymentNetworkWalletAddr() {
   return window['go']['main']['App']['GetPaymentNetworkWalletAddr']();
 }

@@ -183,8 +183,8 @@ func RunProxy(closerCtx context.Context, addr string, adnlKey ed25519.PrivateKey
 var OnTunnel = func(addr string) {}
 var OnPaidUpdate = func(paid tlb.Coins) {}
 
-var OnAskAccept = func(to, from []*tunnel.SectionInfo) bool {
-	return true
+var OnAskAccept = func(to, from []*tunnel.SectionInfo) int {
+	return tunnel.AcceptorDecisionAccept
 }
 var OnAskReroute = func() bool { return false }
 

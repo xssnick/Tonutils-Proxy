@@ -1,11 +1,10 @@
 import {useEffect, useState} from 'react';
 import './App.css';
 import {AddTunnel, GetProxyAddr, GetTunnelEnabled, StartProxy, StopProxy} from "../wailsjs/go/main/App";
-import {BrowserOpenURL, EventsEmit, EventsOn} from "../wailsjs/runtime";
+import {EventsEmit, EventsOn} from "../wailsjs/runtime";
 import Logo from "./assets/logo.svg";
 import TunnelNodesModal from "./TunnelNodesModal";
 import ReinitTunnelConfirm from "./ReinitTunnelConfirm";
-import TunnelConfigurationModal from "./TunnelConfigurationModal";
 import {main} from "../wailsjs/go/models";
 import SectionInfo = main.SectionInfo; // Импортируем модалку
 
@@ -27,7 +26,6 @@ function App() {
     const [isStop, setIsStop] = useState(false);
     const [hasTunnel, setHasTunnel] = useState(false);
     const [isTunnelModalOpen, setIsTunnelModalOpen] = useState(false);
-    const [isTunnelConfigModalOpen, setIsTunnelConfigModalOpen] = useState(false);
     const [isTunnelReinitModalOpen, setIsTunnelReinitModalOpen] = useState(false);
 
     const [paidTunnel, setPaidTunnel] = useState("");
@@ -62,7 +60,6 @@ function App() {
             path,
             max,
         });
-        setIsTunnelConfigModalOpen(true);
     })
     EventsOn("statusUpdate", function (typ: string, text: string) {
         switch (typ) {
@@ -139,11 +136,11 @@ function App() {
                     <button className={"button " + toButtonState(proxyState)} onClick={action}/>
                 </div>
                 <button
-                    className={`apply-config-button ${isStop ? 'already-started' : `${hasTunnel ? "applied" : ""}`}`}
-                    disabled={isStop}
+                    className={`apply-config-button ${(isStop || buttonDisabled) ? 'already-started' : `${hasTunnel ? "applied" : ""}`}`}
+                    disabled={(isStop || buttonDisabled)}
                     onClick={AddTunnel}
                 >
-                    {isStop ? "Stop to edit tunnel" : `${hasTunnel ? "Tunnel Config Applied" : "Apply Tunnel Config"}`}
+                    { (isStop || buttonDisabled) ? "Stop to edit tunnel" : `${hasTunnel ? "Tunnel Config Applied" : "Apply Tunnel Config"}`}
                 </button>
                 {paidTunnel && hasTunnel && (
                     <div className="small-text-paid">
@@ -153,7 +150,7 @@ function App() {
                 <label className={"big-text "+(paidTunnel && hasTunnel ? "status-upper" : "status")}>{resultText}</label>
             </div>
             <div className="author-container">
-                <label className="small-text">v1.7.2</label>
+                <label className="small-text">v1.8.0</label>
             </div>
 
             {isTunnelModalOpen && (
@@ -165,23 +162,13 @@ function App() {
                         EventsEmit("tunnel_check_result");
                         setIsTunnelModalOpen(false);
                     }}
-                    onReroute={() => {
-                        EventsEmit("tunnel_check_result", false);
-                        setIsTunnelModalOpen(false);
+                    onReroute={(num: number) => {
+                        EventsEmit("tunnel_check_result", false, num);
                     }}
                     onAccept={() => {
                         EventsEmit("tunnel_check_result", true);
                         setIsTunnelModalOpen(false);
                     }}
-                />
-            )}
-
-            {isTunnelConfigModalOpen && (
-                <TunnelConfigurationModal
-                    max={tunnelPoolData!.max}
-                    maxFree={tunnelPoolData!.max}
-                    poolPath={tunnelPoolData!.path}
-                    onClose={() => setIsTunnelConfigModalOpen(false)}
                 />
             )}
 

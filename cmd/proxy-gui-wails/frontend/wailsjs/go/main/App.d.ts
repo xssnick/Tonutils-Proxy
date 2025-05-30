@@ -8,6 +8,8 @@ export function DummySec():Promise<Array<main.SectionInfo>>;
 
 export function GetConfig():Promise<main.Config>;
 
+export function GetMaxTunnelNodes():Promise<number>;
+
 export function GetPaymentNetworkWalletAddr():Promise<string>;
 
 export function GetProxyAddr():Promise<string>;

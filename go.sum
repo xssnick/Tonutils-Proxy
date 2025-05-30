@@ -110,8 +110,8 @@ github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOf
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/syndtr/goleveldb v1.0.0 h1:fBdIW9lB4Iz0n9khmH8w27SJ3QEJ7+IgjPEwGSZiFdE=
 github.com/syndtr/goleveldb v1.0.0/go.mod h1:ZVVdQEZoIme9iO1Ch2Jdy24qqXrMMOU6lpPAyBWyWuQ=
-github.com/ton-blockchain/adnl-tunnel v0.1.2 h1:Eh6Ma5Ej2BVGNcvh0O6/XzPpkkAeFJ56zDV9esxfivg=
-github.com/ton-blockchain/adnl-tunnel v0.1.2/go.mod h1:V9XPwDJLEyRyz3RuVBSJ73fc5QxrFKrWDSZ0HAFk7Fo=
+github.com/ton-blockchain/adnl-tunnel v0.1.5 h1:UXi1tq49pZCBjPwa6AdmR3RuMX0hC9JJbEPKE3PF65U=
+github.com/ton-blockchain/adnl-tunnel v0.1.5/go.mod h1:peQhTPA6GchvJlDPYWI6pBed0hy6SvatsenYaMP2/34=
 github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778/go.mod h1:2MuV+tbUrU1zIOPMxZ5EncGwgmMJsa+9ucAQZXxsObs=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavMF/ppJZNG9ZpyihvCd0w101no=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=
@@ -121,8 +121,8 @@ github.com/xssnick/ton-payment-network v0.2.1 h1:ellYKcIvVb5BFlKuTmToTVkSlr9OCSI
 github.com/xssnick/ton-payment-network v0.2.1/go.mod h1:MyVTgwXbVqtUVduMPj047dyTpNqd9h76HyosOPqhMOc=
 github.com/xssnick/tonutils-go v1.13.0 h1:LV2JzB+CuuWaLQiYNolK+YI3NRQOpS0W+T+N+ctF6VQ=
 github.com/xssnick/tonutils-go v1.13.0/go.mod h1:EDe/9D/HZpAenbR+WPMQHICOF0BZWAe01TU5+Vpg08k=
-github.com/xssnick/tonutils-storage v1.0.4 h1:WkiRjTjF64bfxOVQ4zd1f+eq9IN2wBbX8dcgpk1diBA=
-github.com/xssnick/tonutils-storage v1.0.4/go.mod h1:52sQcLIiTPhbCR7NIp2Cuqll0Tohip4mMMf7Z7Gj62I=
+github.com/xssnick/tonutils-storage v1.0.5 h1:WeJpvXQ15/sWOJYOFOmD7UwEc5u1D1zCI7s/OToa28k=
+github.com/xssnick/tonutils-storage v1.0.5/go.mod h1:K72BswLMjDqU2SSv8SiOWwawGRAB/DqJYFmqafovFyU=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=

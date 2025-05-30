@@ -147,11 +147,16 @@ freePrefsRef:
 
 AuthorizationRef auth() {
     AuthorizationRef a;
-    AuthorizationCreate(NULL, kAuthorizationEmptyEnvironment, kAuthorizationFlagInteractionAllowed, &a);
-    if (a == nil) {
-      return nil;
+    OSStatus status = AuthorizationCreate(
+        NULL,
+        kAuthorizationEmptyEnvironment,
+        kAuthorizationFlagInteractionAllowed | kAuthorizationFlagPreAuthorize | kAuthorizationFlagExtendRights,
+        &a
+    );
+    if (status != errAuthorizationSuccess) {
+        return NULL;
     }
-	return a;
+    return a;
 }
 
 int setProxy(char* host, char* port, bool enabled, AuthorizationRef auth) {
