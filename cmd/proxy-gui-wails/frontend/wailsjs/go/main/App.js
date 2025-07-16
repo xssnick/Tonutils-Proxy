@@ -26,8 +26,12 @@ export function GetProxyAddr() {
   return window['go']['main']['App']['GetProxyAddr']();
 }
 
-export function GetTunnelEnabled() {
-  return window['go']['main']['App']['GetTunnelEnabled']();
+export function GetTunnelNodesConfigPath() {
+  return window['go']['main']['App']['GetTunnelNodesConfigPath']();
+}
+
+export function ResetTunnelConfig() {
+  return window['go']['main']['App']['ResetTunnelConfig']();
 }
 
 export function SaveTunnelConfig(arg1, arg2, arg3) {

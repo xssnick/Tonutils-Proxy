@@ -452,6 +452,10 @@ func RunProxyWithConfig(closerCtx context.Context, addr string, adnlKey ed25519.
 
 	if err != nil {
 		failed = true
+		if strings.Contains(err.Error(), "address already in use") {
+			err = fmt.Errorf("cannot start server, port %s is already in use by another application", addr)
+		}
+
 		log.Error().Err(err).Msg("Failed to init proxy server")
 
 		text := "Failed, check logs"

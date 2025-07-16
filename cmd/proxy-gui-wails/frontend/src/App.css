@@ -94,6 +94,9 @@ a {
 
 .logo-container {
   margin-top: 26px;
+  cursor: default;
+  pointer-events: none;
+  user-select: none;
 }
 
 .ip-container {

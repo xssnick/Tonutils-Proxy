@@ -10,7 +10,7 @@ import (
 	"github.com/ton-blockchain/adnl-tunnel/config"
 	"github.com/ton-blockchain/adnl-tunnel/tunnel"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"github.com/xssnick/ton-payment-network/tonpayments/chain"
+	"github.com/xssnick/ton-payment-network/tonpayments/wallet"
 	"github.com/xssnick/tonutils-go/liteclient"
 	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton"
@@ -187,8 +187,11 @@ func (a *App) GetProxyAddr() string {
 	return a.cfg.ProxyListenAddr
 }
 
-func (a *App) GetTunnelEnabled() bool {
-	return a.cfg.TunnelConfig != nil && a.cfg.TunnelConfig.NodesPoolConfigPath != ""
+func (a *App) GetTunnelNodesConfigPath() string {
+	if a.cfg.TunnelConfig != nil {
+		return a.cfg.TunnelConfig.NodesPoolConfigPath
+	}
+	return ""
 }
 
 func (a *App) GetConfig() *Config {
@@ -196,7 +199,7 @@ func (a *App) GetConfig() *Config {
 }
 
 func (a *App) GetPaymentNetworkWalletAddr() string {
-	w, err := chain.InitWallet(ton.NewAPIClient(liteclient.NewOfflineClient()), ed25519.NewKeyFromSeed(a.cfg.TunnelConfig.Payments.WalletPrivateKey))
+	w, err := wallet.InitWallet(ton.NewAPIClient(liteclient.NewOfflineClient()), ed25519.NewKeyFromSeed(a.cfg.TunnelConfig.Payments.WalletPrivateKey))
 	if err != nil {
 		log.Error().Err(err).Msg("init wallet error")
 		return "{ERROR}"
@@ -269,6 +272,11 @@ func (a *App) shutdown(ctx context.Context) {
 }
 
 var openOnce sync.Once
+
+func (a *App) ResetTunnelConfig() {
+	a.SaveTunnelConfig(a.cfg.TunnelConfig.TunnelSectionsNum, true, "")
+	runtime.EventsEmit(a.ctx, "tunnel_pool_added", "", 0)
+}
 
 func (a *App) AddTunnel() {
 	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
@@ -347,7 +355,7 @@ func (a *App) parseTunnelConfig(path string) *TunnelConfigInfo {
 			_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 				Type:    runtime.ErrorDialog,
 				Title:   "Failed to parse nodes pool config",
-				Message: "Invalid nodes pool config format",
+				Message: "Unable to load tunnel node settings\nPlease check that the configuration file is correct and contains at least one node",
 			})
 			return nil
 		}

@@ -27,7 +27,7 @@ func main() {
 
 	// Create application with options
 	err = wails.Run(&options.App{
-		Title:         "Tonutils Proxy",
+		Title:         "TON Proxy",
 		Width:         375,
 		Height:        height,
 		DisableResize: true,

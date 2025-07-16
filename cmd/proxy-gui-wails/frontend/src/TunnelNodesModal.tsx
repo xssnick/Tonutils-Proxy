@@ -3,6 +3,7 @@ import SectionInfo = main.SectionInfo;
 import {main} from "../wailsjs/go/models";
 import {GetConfig, GetMaxTunnelNodes, GetPaymentNetworkWalletAddr, SaveTunnelConfig} from "../wailsjs/go/main/App";
 import Config = main.Config;
+import QR from "./QR";
 
 interface TunnelNodesModalProps {
     sections: SectionInfo[];
@@ -115,6 +116,8 @@ export const TunnelNodesModal: React.FC<TunnelNodesModalProps> = ({
                             <p className="important-note">
                                 Deposit at least 5.5 TON for tunnel payments.
                             </p>
+                            <QR address={addr}/>
+
                         </div>
                     )}
                 </div>

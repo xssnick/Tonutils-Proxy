@@ -1,12 +1,19 @@
 import {useEffect, useState} from 'react';
 import './App.css';
-import {AddTunnel, GetProxyAddr, GetTunnelEnabled, StartProxy, StopProxy} from "../wailsjs/go/main/App";
+import {
+    AddTunnel,
+    GetProxyAddr,
+    GetTunnelNodesConfigPath, ResetTunnelConfig,
+    StartProxy,
+    StopProxy
+} from "../wailsjs/go/main/App";
 import {EventsEmit, EventsOn} from "../wailsjs/runtime";
 import Logo from "./assets/logo.svg";
 import TunnelNodesModal from "./TunnelNodesModal";
 import ReinitTunnelConfirm from "./ReinitTunnelConfirm";
 import {main} from "../wailsjs/go/models";
-import SectionInfo = main.SectionInfo; // Импортируем модалку
+import SectionInfo = main.SectionInfo;
+import ResetTunnelConfirm from "./ResetTunnelConfirm"; // Импортируем модалку
 
 interface TunnelData {
     sections: SectionInfo[];
@@ -24,9 +31,10 @@ function App() {
     const [proxyState, setProxyState] = useState("stopped");
     const [buttonDisabled, setButtonDisabled] = useState(false);
     const [isStop, setIsStop] = useState(false);
-    const [hasTunnel, setHasTunnel] = useState(false);
+    const [pathTunnel, setPathTunnel] = useState("");
     const [isTunnelModalOpen, setIsTunnelModalOpen] = useState(false);
     const [isTunnelReinitModalOpen, setIsTunnelReinitModalOpen] = useState(false);
+    const [isTunnelResetModalOpen, setIsTunnelResetModalOpen] = useState(false);
 
     const [paidTunnel, setPaidTunnel] = useState("");
     const [proxyAddress, setProxyAddress] = useState("127.0.0.1:8080");
@@ -93,7 +101,7 @@ function App() {
         setResultText(text);
     });
     EventsOn("config_saved", function () {
-        GetTunnelEnabled().then((enabled: boolean) => setHasTunnel(enabled));
+        GetTunnelNodesConfigPath().then((path: string) => setPathTunnel(path));
     })
 
     async function action() {
@@ -115,7 +123,7 @@ function App() {
     }
 
     useEffect(() => {
-        GetTunnelEnabled().then((enabled: boolean) => setHasTunnel(enabled));
+        GetTunnelNodesConfigPath().then((path: string) => setPathTunnel(path));
         GetProxyAddr().then((addr: string) => setProxyAddress(addr));
     }, []);
 
@@ -128,7 +136,7 @@ function App() {
                 <div className="ip-container">
                     <label>Proxy IP</label>
                     <label className="big-text">{proxyAddress}</label>
-                    {hasTunnel && tunnelAddress && (
+                    {pathTunnel && tunnelAddress && (
                         <label className="small-text-tunnel">-&gt; {tunnelAddress}</label>
                     )}
                 </div>
@@ -136,21 +144,24 @@ function App() {
                     <button className={"button " + toButtonState(proxyState)} onClick={action}/>
                 </div>
                 <button
-                    className={`apply-config-button ${(isStop || buttonDisabled) ? 'already-started' : `${hasTunnel ? "applied" : ""}`}`}
+                    className={`apply-config-button ${(isStop || buttonDisabled) ? 'already-started' : `${pathTunnel ? "applied" : ""}`}`}
                     disabled={(isStop || buttonDisabled)}
-                    onClick={AddTunnel}
+                    title={pathTunnel ? pathTunnel : "Tunnel config not applied" }
+                    onClick={pathTunnel ? () => {
+                        setIsTunnelResetModalOpen(true);
+                    }: AddTunnel }
                 >
-                    { (isStop || buttonDisabled) ? "Stop to edit tunnel" : `${hasTunnel ? "Tunnel Config Applied" : "Apply Tunnel Config"}`}
+                    { (isStop || buttonDisabled) ? "Stop to edit tunnel" : `${pathTunnel ? "Tunnel Config Applied" : "Apply Tunnel Config"}`}
                 </button>
-                {paidTunnel && hasTunnel && (
+                {paidTunnel && pathTunnel && (
                     <div className="small-text-paid">
                         Paid: {paidTunnel} TON
                     </div>
                 )}
-                <label className={"big-text "+(paidTunnel && hasTunnel ? "status-upper" : "status")}>{resultText}</label>
+                <label className={"big-text "+(paidTunnel && pathTunnel ? "status-upper" : "status")}>{resultText}</label>
             </div>
             <div className="author-container">
-                <label className="small-text">v1.8.0</label>
+                <label className="small-text">v1.8.1</label>
             </div>
 
             {isTunnelModalOpen && (
@@ -175,6 +186,17 @@ function App() {
             {isTunnelReinitModalOpen && (
                 <ReinitTunnelConfirm
                     onExit={() => setIsTunnelReinitModalOpen(false)}
+                />
+            )}
+
+            {isTunnelResetModalOpen && (
+                <ResetTunnelConfirm
+                    onReset={() => {
+                        ResetTunnelConfig().then(() =>{
+                            setIsTunnelResetModalOpen(false)
+                        })
+                    }}
+                    onCancel={() => setIsTunnelResetModalOpen(false)}
                 />
             )}
         </div>

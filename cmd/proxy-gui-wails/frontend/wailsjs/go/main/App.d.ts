@@ -14,7 +14,9 @@ export function GetPaymentNetworkWalletAddr():Promise<string>;
 
 export function GetProxyAddr():Promise<string>;
 
-export function GetTunnelEnabled():Promise<boolean>;
+export function GetTunnelNodesConfigPath():Promise<string>;
+
+export function ResetTunnelConfig():Promise<void>;
 
 export function SaveTunnelConfig(arg1:number,arg2:boolean,arg3:string):Promise<string>;
 
