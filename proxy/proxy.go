@@ -419,6 +419,9 @@ func RunProxyWithConfig(closerCtx context.Context, addr string, adnlKey ed25519.
 	t := transport.NewTransport(gateProxy, dhtClient, dnsClient, conn, store)
 	client = &http.Client{
 		Transport: t,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 	defer t.Stop()
 

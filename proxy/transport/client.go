@@ -593,7 +593,7 @@ func (t *Transport) doRldpHttp(client RLDP, host string, request *http.Request) 
 	}
 
 	for _, header := range res.Headers {
-		httpResp.Header[header.Name] = []string{header.Value}
+		httpResp.Header.Add(header.Name, header.Value)
 	}
 
 	if ln, ok := request.Header["Content-Length"]; ok && len(ln) > 0 {
