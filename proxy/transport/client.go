@@ -395,6 +395,8 @@ func (t *Transport) doTorrent(bag *bagInfo, request *http.Request, si *siteInfo)
 		}, nil
 	}
 
+	pieces := make([]byte, bag.torrent.Info.PiecesNum())
+
 	var typ string
 	if strings.Contains(fileName, ".") {
 		ext := strings.Split(fileName, ".")
@@ -425,8 +427,7 @@ func (t *Transport) doTorrent(bag *bagInfo, request *http.Request, si *siteInfo)
 		}, nil
 	}
 
-	pieces := make([]uint32, 0, (fileInfo.ToPiece-fileInfo.FromPiece)+1)
-	piecesMap := make(map[uint32]bool, cap(pieces))
+	piecesMap := make(map[uint32]bool, fileInfo.ToPiece-fileInfo.FromPiece+1)
 
 	var offFrom, offTo uint64 = 0, 0
 	for piece := fileInfo.FromPiece; piece <= fileInfo.ToPiece; piece++ {
@@ -440,8 +441,8 @@ func (t *Transport) doTorrent(bag *bagInfo, request *http.Request, si *siteInfo)
 
 		offTo += uint64(sz)
 		if offTo >= from && offFrom <= to {
+			pieces[piece] = 1
 			piecesMap[piece] = true
-			pieces = append(pieces, piece)
 		}
 		offFrom = offTo
 	}
@@ -471,7 +472,7 @@ func (t *Transport) doTorrent(bag *bagInfo, request *http.Request, si *siteInfo)
 	httpResp.Header.Set("Content-Type", typ)
 
 	if len(pieces) > 0 {
-		fetch := storage.NewPreFetcher(request.Context(), bag.torrent, bag.downloader, func(event storage.Event) {}, 64, pieces)
+		fetch := storage.NewPreFetcher(request.Context(), bag.torrent, func(event storage.Event) {}, 64, pieces)
 		stream := newDataStreamer()
 		httpResp.Body = stream
 
@@ -815,7 +816,7 @@ func (t *Transport) proxyOrdered(ctx context.Context, file *storage.FileInfo,
 
 				atomic.StoreInt64(&si.LastUsed, time.Now().Unix())
 
-				currentPiece, _, err = fetch.Get(ctx, piece)
+				currentPiece, _, err = fetch.WaitGet(ctx, piece)
 				if err != nil {
 					return fmt.Errorf("failed to download piece %d: %w", piece, err)
 				}
